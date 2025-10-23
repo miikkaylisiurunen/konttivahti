@@ -1,9 +1,9 @@
 import Dockerode from 'dockerode';
-import { scanContainers } from './scanner';
+import { startJobs } from './jobs';
 
-async function main() {
+function main() {
   const docker = new Dockerode();
-  await scanContainers({ docker });
+  startJobs({ docker });
 }
 
 main();

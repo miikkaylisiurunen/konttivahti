@@ -10,11 +10,13 @@
   },
   "dependencies": {
     "dockerode": "^4.0.9",
+    "node-cron": "^3.0.3",
     "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/dockerode": "^3.3.44",
     "@types/node": "^20.19.19",
+    "@types/node-cron": "^3.0.11",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3"
   }
