@@ -10,8 +10,9 @@
   },
   "dependencies": {
     "dockerode": "^4.0.9",
+    "dotenv": "^17.2.3",
     "node-cron": "^3.0.3",
-    "zod": "^3.25.76"
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@types/dockerode": "^3.3.44",

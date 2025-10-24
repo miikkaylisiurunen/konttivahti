@@ -1,7 +1,9 @@
 import type Docker from 'dockerode';
 import { z } from 'zod';
+import { Env } from './env';
 
 export interface AppContext {
+  env: Env;
   docker: Docker;
 }
 

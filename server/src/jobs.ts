@@ -6,16 +6,14 @@ export interface Jobs {
   stop: () => void;
 }
 
-const SCAN_SCHEDULE = '0 */6 * * *';
-
 export function startJobs(ctx: AppContext): Jobs {
   const tasks: ScheduledTask[] = [];
 
   tasks.push(
-    cron.schedule(SCAN_SCHEDULE, () => {
+    cron.schedule(ctx.env.SCAN_SCHEDULE, () => {
       console.log('Scheduled scan started');
       scanContainers(ctx).catch((err) => {
-        console.error('Scheduled scan failed', err);
+        console.error('Scheduled scan failed:', err);
       });
     }),
   );
