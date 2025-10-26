@@ -3,6 +3,7 @@ import cron from 'node-cron';
 import 'dotenv/config';
 
 const Env = z.object({
+  DATABASE_PATH: z.string().min(1),
   SCAN_SCHEDULE: z
     .string()
     .default('0 */6 * * *')

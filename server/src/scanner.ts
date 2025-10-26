@@ -48,10 +48,18 @@ export function parseImage(imageName: string): ImageIdentity | null {
   return { registry, image, tag, requestedDigest };
 }
 
+function parseDateToMs(value?: string): number | null {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.getTime();
+}
+
 async function checkContainer(
   ctx: AppContext,
   containerInfo: Docker.ContainerInfo,
 ): Promise<ImageIdentity | null> {
+  const checkStartedAt = Date.now();
   const container = ctx.docker.getContainer(containerInfo.Id);
   const inspect = await container.inspect();
 
@@ -65,7 +73,16 @@ async function checkContainer(
 
   const key = getImageIdentityKey(parsed);
   const name = inspect.Name.replace(/^\//, '');
+  const existing = ctx.db.getContainer(
+    parsed.registry,
+    parsed.image,
+    parsed.tag,
+    parsed.requestedDigest,
+  );
+
   const imageInspect = await ctx.docker.getImage(inspect.Image).inspect();
+  const createdAt = parseDateToMs(imageInspect.Created);
+
   const repoDigests = imageInspect.RepoDigests || [];
 
   let localDigest: string | null = null;
@@ -80,8 +97,24 @@ async function checkContainer(
   }
 
   if (!localDigest) {
+    const now = Date.now();
     console.log('Image has no repo digest and might be built locally or pulled without digest', {
       image: key,
+    });
+    ctx.db.upsertContainer({
+      name,
+      image: parsed.image,
+      tag: parsed.tag,
+      registry: parsed.registry,
+      requestedDigest: parsed.requestedDigest,
+      localDigest: null,
+      latestDigest: null,
+      status: 'local',
+      lastCheckedAt: now,
+      lastSuccessAt: null,
+      lastUpdateDetectedAt: null,
+      createdAt,
+      error: null,
     });
     return parsed;
   }
@@ -96,16 +129,59 @@ async function checkContainer(
     }
 
     const status = localDigest === latestDigest ? 'up_to_date' : 'outdated';
+    const now = Date.now();
+    let lastUpdateDetectedAt: number | null = null;
 
     if (status === 'outdated') {
-      console.log(`Update available for ${parsed.registry}/${parsed.image} (${name}).`);
+      if (!existing || existing.latestDigest !== latestDigest) {
+        lastUpdateDetectedAt = now;
+      }
     }
 
-    console.log(`Checked ${key}: ${status}`);
+    ctx.db.upsertContainer({
+      name,
+      image: parsed.image,
+      tag: parsed.tag,
+      registry: parsed.registry,
+      requestedDigest: parsed.requestedDigest,
+      localDigest,
+      latestDigest,
+      status,
+      lastCheckedAt: now,
+      lastSuccessAt: now,
+      lastUpdateDetectedAt,
+      createdAt,
+      error: null,
+    });
+
+    console.log('Checked image:', {
+      image: key,
+      status,
+      localDigest,
+      latestDigest,
+      durationMs: Date.now() - checkStartedAt,
+    });
     return parsed;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     console.log(`Failed to check ${key}: ${errorMsg}`);
+    const now = Date.now();
+
+    ctx.db.upsertContainer({
+      name,
+      image: parsed.image,
+      tag: parsed.tag,
+      registry: parsed.registry,
+      requestedDigest: parsed.requestedDigest,
+      localDigest,
+      latestDigest: null,
+      status: 'error',
+      lastCheckedAt: now,
+      lastSuccessAt: null,
+      lastUpdateDetectedAt: null,
+      createdAt,
+      error: errorMsg,
+    });
     return parsed;
   }
 }
