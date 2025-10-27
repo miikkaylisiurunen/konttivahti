@@ -1,0 +1,50 @@
+# a few small containers to test Docker integration
+
+services:
+  alpine_318:
+    image: alpine:3.18
+    command: ['sh', '-c', 'sleep infinity']
+
+  alpine_319:
+    image: alpine:3.19
+    command: ['sh', '-c', 'sleep infinity']
+
+  busybox_136:
+    image: busybox:1.36
+    command: ['sh', '-c', 'sleep infinity']
+
+  nginx_latest:
+    image: nginx:latest
+
+  nginx_124:
+    image: nginx:1.24-alpine
+
+  nginx_123_digest:
+    image: nginx:1.23-alpine@sha256:02ffd439b71d9ea9408e449b568f65c0bbbb94bebd8750f1d80231ab6496008e
+
+  # 1.22-alpine
+  nginx_digest_only:
+    image: nginx@sha256:8745c93f1a1c33a8ec8c82707b9bb1c8fe9ebf2b5d82e9480e78625d809855a1
+
+  nginx_124_hidden:
+    image: nginx:1.24-alpine
+    labels:
+      konttivahti.ignore: 'true'
+
+  ghcr_linuxserver_nginx:
+    image: ghcr.io/linuxserver/nginx:1.28.0
+
+  redis_7:
+    image: redis:7-alpine
+
+  redis_6:
+    image: redis:6-alpine
+
+  lscr_nginx:
+    image: lscr.io/linuxserver/nginx:latest
+
+  alpine_local_latest:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    command: ['sh', '-c', 'sleep infinity']
