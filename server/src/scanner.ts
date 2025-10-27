@@ -192,8 +192,26 @@ export async function scanContainers(ctx: AppContext): Promise<void> {
   try {
     const containers = await ctx.docker.listContainers();
     console.log(`Scanning ${containers.length} containers...`);
+    const cachedContainers = ctx.db.getAllContainers();
+    const lastSuccessByKey = new Map<string, number>();
 
-    for (const containerInfo of containers) {
+    for (const cached of cachedContainers) {
+      lastSuccessByKey.set(getImageIdentityKey(cached), cached.lastSuccessAt ?? 0);
+    }
+
+    const sortedContainers = [...containers].sort((a, b) => {
+      const parsedA = parseImage(a.Image);
+      const parsedB = parseImage(b.Image);
+      const keyA = parsedA ? getImageIdentityKey(parsedA) : '';
+      const keyB = parsedB ? getImageIdentityKey(parsedB) : '';
+      const lastA = lastSuccessByKey.get(keyA) ?? 0;
+      const lastB = lastSuccessByKey.get(keyB) ?? 0;
+
+      if (lastA !== lastB) return lastA - lastB;
+      return keyA.localeCompare(keyB);
+    });
+
+    for (const containerInfo of sortedContainers) {
       await checkContainer(ctx, containerInfo);
     }
 
