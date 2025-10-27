@@ -1,0 +1,15 @@
+services:
+  konttivahti:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: konttivahti
+    ports:
+      - "3000:3000"
+    volumes:
+      - konttivahti-data:/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+
+volumes:
+  konttivahti-data:
