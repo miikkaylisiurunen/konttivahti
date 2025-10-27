@@ -2,6 +2,8 @@ import type Docker from 'dockerode';
 import { getDockerHubDigest, getRegistryDigest } from './registry';
 import type { AppContext } from './types';
 
+const TRUTHY_LABEL_VALUES = new Set(['1', 'true', 'yes', 'on']);
+
 interface ImageIdentity {
   registry: string;
   image: string;
@@ -12,6 +14,19 @@ interface ImageIdentity {
 export function getImageIdentityKey(identity: ImageIdentity): string {
   const base = `${identity.registry}/${identity.image}:${identity.tag}`;
   return identity.requestedDigest ? `${base}@${identity.requestedDigest}` : base;
+}
+
+export function shouldIgnoreContainer(
+  ignoreLabel: string,
+  labels?: Record<string, string>,
+): boolean {
+  if (!ignoreLabel || !labels) return false;
+  if (!(ignoreLabel in labels)) return false;
+
+  const rawValue = labels[ignoreLabel];
+  if (rawValue === undefined || rawValue === '') return true;
+
+  return TRUTHY_LABEL_VALUES.has(rawValue.trim().toLowerCase());
 }
 
 export function parseImage(imageName: string): ImageIdentity | null {
@@ -212,6 +227,12 @@ export async function scanContainers(ctx: AppContext): Promise<void> {
     });
 
     for (const containerInfo of sortedContainers) {
+      if (shouldIgnoreContainer(ctx.env.IGNORE_CONTAINER_LABEL, containerInfo.Labels)) {
+        const name = containerInfo.Names?.[0]?.replace(/^\//, '') ?? containerInfo.Id;
+        console.log('Skipping container with ignore label:', name);
+        continue;
+      }
+
       await checkContainer(ctx, containerInfo);
     }
 
