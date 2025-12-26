@@ -31,3 +31,5 @@ export interface DbContainer {
   createdAt: number | null;
   error: string | null;
 }
+
+export type ApiContainer = Omit<DbContainer, 'id'>;
