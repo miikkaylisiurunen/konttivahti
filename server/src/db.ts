@@ -2,6 +2,9 @@ import Database from 'better-sqlite3';
 import fs from 'fs';
 import path from 'path';
 import type { DbContainer } from './types';
+import { getLogger } from './logger';
+
+const logger = getLogger('DB');
 
 interface Migration {
   name: string;
@@ -55,7 +58,7 @@ export class DB {
 
     for (const migration of migrations) {
       if (!executedNames.has(migration.name)) {
-        console.log(`Running migration: ${migration.name}`);
+        logger.info({ migration: migration.name }, 'Running migration');
         const tx = this.db.transaction(() => {
           this.db.exec(migration.sql);
           this.db

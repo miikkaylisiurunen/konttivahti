@@ -1,5 +1,8 @@
 import type { ApiContainer, AppContext, DbContainer } from './types';
-import { getImageIdentityKey, parseImage } from './scanner';
+import { getImageIdentityKey, parseImage, shouldIgnoreContainer } from './scanner';
+import { getLogger } from './logger';
+
+const logger = getLogger('Status');
 
 function buildCacheMap(rows: DbContainer[]): Map<string, DbContainer> {
   const map = new Map<string, DbContainer>();
@@ -15,9 +18,13 @@ export async function getStatusContainers(ctx: AppContext): Promise<ApiContainer
   const results: ApiContainer[] = [];
 
   for (const containerInfo of containers) {
+    if (shouldIgnoreContainer(ctx.env.IGNORE_CONTAINER_LABEL, containerInfo.Labels)) {
+      continue;
+    }
+
     const parsed = parseImage(containerInfo.Image);
     if (!parsed) {
-      console.log('Skipping unparsable image:', containerInfo.Image);
+      logger.warn({ image: containerInfo.Image }, 'Skipping unparsable image');
       continue;
     }
 

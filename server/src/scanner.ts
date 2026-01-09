@@ -1,6 +1,9 @@
 import type Docker from 'dockerode';
 import { getDockerHubDigest, getRegistryDigest } from './registry';
 import type { AppContext } from './types';
+import { getLogger } from './logger';
+
+const logger = getLogger('Scanner');
 
 const TRUTHY_LABEL_VALUES = new Set(['1', 'true', 'yes', 'on']);
 
@@ -82,7 +85,10 @@ async function checkContainer(
   const parsed = parseImage(imageName);
 
   if (!parsed) {
-    console.log('Skipping unparseable image:', imageName);
+    logger.warn(
+      { image: imageName, durationMs: Date.now() - checkStartedAt },
+      'Skipping unparseable image',
+    );
     return null;
   }
 
@@ -113,9 +119,10 @@ async function checkContainer(
 
   if (!localDigest) {
     const now = Date.now();
-    console.log('Image has no repo digest and might be built locally or pulled without digest', {
-      image: key,
-    });
+    logger.info(
+      { image: key, durationMs: Date.now() - checkStartedAt },
+      'Image has no repo digest and might be built locally or pulled without digest',
+    );
     ctx.db.upsertContainer({
       name,
       image: parsed.image,
@@ -169,17 +176,23 @@ async function checkContainer(
       error: null,
     });
 
-    console.log('Checked image:', {
-      image: key,
-      status,
-      localDigest,
-      latestDigest,
-      durationMs: Date.now() - checkStartedAt,
-    });
+    logger.info(
+      {
+        image: key,
+        status,
+        localDigest,
+        latestDigest,
+        durationMs: Date.now() - checkStartedAt,
+      },
+      'Image check complete',
+    );
     return parsed;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
-    console.log(`Failed to check ${key}: ${errorMsg}`);
+    logger.error(
+      { image: key, error: errorMsg, durationMs: Date.now() - checkStartedAt },
+      'Image check failed',
+    );
     const now = Date.now();
 
     ctx.db.upsertContainer({
@@ -206,7 +219,7 @@ export async function scanContainers(ctx: AppContext): Promise<void> {
 
   try {
     const containers = await ctx.docker.listContainers();
-    console.log(`Scanning ${containers.length} containers...`);
+    logger.info({ containerCount: containers.length }, 'Scan started');
     const cachedContainers = ctx.db.getAllContainers();
     const lastSuccessByKey = new Map<string, number>();
 
@@ -229,18 +242,27 @@ export async function scanContainers(ctx: AppContext): Promise<void> {
     for (const containerInfo of sortedContainers) {
       if (shouldIgnoreContainer(ctx.env.IGNORE_CONTAINER_LABEL, containerInfo.Labels)) {
         const name = containerInfo.Names?.[0]?.replace(/^\//, '') ?? containerInfo.Id;
-        console.log('Skipping container with ignore label:', name);
+        logger.info(
+          { container: name, label: ctx.env.IGNORE_CONTAINER_LABEL },
+          'Skipping container with ignore label',
+        );
         continue;
       }
 
       await checkContainer(ctx, containerInfo);
     }
 
-    console.log('Scan complete', {
-      containerCount: containers.length,
-      durationMs: Date.now() - startedAt,
-    });
+    logger.info(
+      { containerCount: containers.length, durationMs: Date.now() - startedAt },
+      'Scan complete',
+    );
   } catch (error) {
-    console.log('Scan failed:', error instanceof Error ? error.message : String(error));
+    logger.error(
+      {
+        error: error instanceof Error ? error.message : String(error),
+        durationMs: Date.now() - startedAt,
+      },
+      'Scan failed',
+    );
   }
 }

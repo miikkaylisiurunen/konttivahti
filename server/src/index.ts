@@ -3,6 +3,9 @@ import { startJobs } from './jobs';
 import { getEnv } from './env';
 import { DB } from './db';
 import { createApp } from './app';
+import { getLogger } from './logger';
+
+const logger = getLogger('Server');
 
 function main() {
   const env = getEnv();
@@ -16,7 +19,7 @@ function main() {
 
   const app = createApp(ctx);
   app.listen(env.PORT, () => {
-    console.log(`Server listening on port ${env.PORT}`);
+    logger.info({ port: env.PORT }, 'Server listening');
   });
 
   startJobs(ctx);

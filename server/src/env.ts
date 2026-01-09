@@ -1,6 +1,9 @@
 import { z } from 'zod';
 import cron from 'node-cron';
 import 'dotenv/config';
+import { getLogger } from './logger';
+
+const logger = getLogger('Env');
 
 const Env = z.object({
   PORT: z.coerce.number().int().positive().default(3000),
@@ -22,7 +25,7 @@ export function getEnv(): Env {
   const result = Env.safeParse(process.env);
 
   if (!result.success) {
-    console.error('Environment validation failed:', result.error);
+    logger.error({ err: result.error }, 'Environment validation failed');
     throw new Error('Invalid environment variables');
   }
 
