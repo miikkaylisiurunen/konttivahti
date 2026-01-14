@@ -11,6 +11,7 @@
     "format": "prettier --write ."
   },
   "dependencies": {
+    "@base-ui/react": "^1.0.0",
     "lucide-react": "^0.562.0",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",

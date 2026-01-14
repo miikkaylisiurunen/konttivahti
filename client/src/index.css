@@ -11,6 +11,7 @@
   --color-foreground-muted: var(--color-zinc-400);
   --color-foreground-subtle: var(--color-zinc-500);
   --color-outline: var(--color-zinc-800);
+  --shadow-popover: 0 20px 40px -16px rgb(0 0 0 / 0.3);
 }
 
 @layer base {
