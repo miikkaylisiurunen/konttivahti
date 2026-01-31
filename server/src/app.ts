@@ -1,5 +1,6 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cookieParser from 'cookie-parser';
+import path from 'node:path';
 import type { AppContext } from './types';
 import { AuthCredentials } from './types';
 import { Auth } from './auth';
@@ -18,6 +19,7 @@ export function createApp(ctx: AppContext): express.Express {
   app.use((req, res, next) => {
     const start = Date.now();
     res.on('finish', () => {
+      if (!req.originalUrl.startsWith('/api')) return;
       logger.info(
         {
           method: req.method,
@@ -68,6 +70,16 @@ export function createApp(ctx: AppContext): express.Express {
   });
 
   app.use('/api', authRouter);
+
+  const staticRoot = path.resolve(process.cwd(), 'public');
+  const indexPath = path.join(staticRoot, 'index.html');
+  app.use(express.static(staticRoot));
+  app.get('/{*splat}', (req, res, next) => {
+    if (req.path.startsWith('/api')) {
+      return next();
+    }
+    res.sendFile(indexPath);
+  });
 
   app.use(() => {
     throw new HttpError(404, 'Not found');

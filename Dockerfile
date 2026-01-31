@@ -1,4 +1,14 @@
-FROM node:20-slim AS builder
+FROM node:20-slim AS web-builder
+
+WORKDIR /app/web
+
+COPY client/package*.json ./
+RUN npm ci
+
+COPY client/ ./
+RUN npm run build
+
+FROM node:20-slim AS server-builder
 
 WORKDIR /app
 
@@ -19,8 +29,10 @@ COPY server/package*.json ./
 RUN npm ci --omit=dev && \
     npm cache clean --force
 
-COPY --from=builder /app/dist ./dist
+COPY --from=server-builder /app/dist ./dist
 COPY server/migrations ./migrations
+
+COPY --from=web-builder /app/web/dist ./public
 
 RUN mkdir -p /data
 ENV DATABASE_PATH=/data/konttivahti.db
