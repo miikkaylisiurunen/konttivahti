@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { getImageIdentityKey, parseImage, shouldIgnoreContainer } from './scanner';
+import {
+  getImageIdentityKey,
+  getRegistryBaseUrl,
+  parseImage,
+  shouldIgnoreContainer,
+} from './scanner';
 
 describe('parseImage', () => {
   it('parses simple image name', () => {
@@ -230,6 +235,32 @@ describe('shouldIgnoreContainer', () => {
     expect(shouldIgnoreContainer(label, { [label]: 'false' })).toBe(false);
     expect(shouldIgnoreContainer(label, { [label]: '0' })).toBe(false);
     expect(shouldIgnoreContainer(label, { [label]: 'abc' })).toBe(false);
+  });
+});
+
+describe('getRegistryBaseUrl', () => {
+  it('uses http for localhost registries', () => {
+    expect(getRegistryBaseUrl('localhost')).toBe('http://localhost');
+    expect(getRegistryBaseUrl('localhost:5000')).toBe('http://localhost:5000');
+    expect(getRegistryBaseUrl('LOCALHOST:5000')).toBe('http://LOCALHOST:5000');
+  });
+
+  it('uses http for loopback registries', () => {
+    expect(getRegistryBaseUrl('127.0.0.1:5000')).toBe('http://127.0.0.1:5000');
+    expect(getRegistryBaseUrl('[::1]:5000')).toBe('http://[::1]:5000');
+  });
+
+  it('uses https for named registries other than localhost', () => {
+    expect(getRegistryBaseUrl('ghcr.io')).toBe('https://ghcr.io');
+    expect(getRegistryBaseUrl('registry.example.com:5000')).toBe(
+      'https://registry.example.com:5000',
+    );
+  });
+
+  it('uses https for ip registries other than loopback', () => {
+    expect(getRegistryBaseUrl('192.168.1.10:5000')).toBe('https://192.168.1.10:5000');
+    expect(getRegistryBaseUrl('8.8.8.8')).toBe('https://8.8.8.8');
+    expect(getRegistryBaseUrl('[2001:db8::1]:5000')).toBe('https://[2001:db8::1]:5000');
   });
 });
 

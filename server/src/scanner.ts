@@ -14,6 +14,15 @@ interface ImageIdentity {
   requestedDigest: string | null;
 }
 
+export function getRegistryBaseUrl(registry: string): string {
+  const lowerRegistry = registry.toLowerCase();
+  const host = lowerRegistry.startsWith('[')
+    ? lowerRegistry.slice(1, lowerRegistry.indexOf(']'))
+    : lowerRegistry.split(':')[0];
+  const isLocalRegistry = host === 'localhost' || host === '127.0.0.1' || host === '::1';
+  return `${isLocalRegistry ? 'http' : 'https'}://${registry}`;
+}
+
 export function getImageIdentityKey(identity: ImageIdentity): string {
   const base = `${identity.registry}/${identity.image}:${identity.tag}`;
   return identity.requestedDigest ? `${base}@${identity.requestedDigest}` : base;
@@ -76,6 +85,8 @@ function parseDateToMs(value?: string): number | null {
 async function checkContainer(
   ctx: AppContext,
   containerInfo: Docker.ContainerInfo,
+  latestDigestCache: Map<string, string>,
+  blockedRegistries: Set<string>,
 ): Promise<ImageIdentity | null> {
   const checkStartedAt = Date.now();
   const container = ctx.docker.getContainer(containerInfo.Id);
@@ -93,6 +104,7 @@ async function checkContainer(
   }
 
   const key = getImageIdentityKey(parsed);
+  const latestDigestKey = `${parsed.registry}/${parsed.image}`;
   const name = inspect.Name.replace(/^\//, '');
   const existing = ctx.db.getContainer(
     parsed.registry,
@@ -142,12 +154,23 @@ async function checkContainer(
   }
 
   try {
-    let latestDigest: string | null;
+    let latestDigest = latestDigestCache.get(latestDigestKey);
 
-    if (parsed.registry === 'docker.io') {
-      latestDigest = await getDockerHubDigest(parsed.image);
-    } else {
-      latestDigest = await getRegistryDigest(`https://${parsed.registry}`, parsed.image);
+    if (!latestDigest) {
+      if (blockedRegistries.has(parsed.registry)) {
+        logger.info(
+          { image: key, registry: parsed.registry },
+          'Skipping image check because registry is rate limited for this scan',
+        );
+        return parsed;
+      }
+
+      if (parsed.registry === 'docker.io') {
+        latestDigest = await getDockerHubDigest(parsed.image);
+      } else {
+        latestDigest = await getRegistryDigest(getRegistryBaseUrl(parsed.registry), parsed.image);
+      }
+      latestDigestCache.set(latestDigestKey, latestDigest);
     }
 
     const status = localDigest === latestDigest ? 'up_to_date' : 'outdated';
@@ -189,6 +212,17 @@ async function checkContainer(
     return parsed;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
+    if (errorMsg.includes('429')) {
+      if (!blockedRegistries.has(parsed.registry)) {
+        blockedRegistries.add(parsed.registry);
+        logger.warn(
+          { registry: parsed.registry, image: key },
+          'Registry rate limit reached. Skipping remaining checks for this registry in current scan.',
+        );
+      }
+      return parsed;
+    }
+
     logger.error(
       { image: key, error: errorMsg, durationMs: Date.now() - checkStartedAt },
       'Image check failed',
@@ -220,6 +254,8 @@ export async function scanContainers(ctx: AppContext): Promise<void> {
   try {
     const containers = await ctx.docker.listContainers();
     logger.info({ containerCount: containers.length }, 'Scan started');
+    const latestDigestCache = new Map<string, string>();
+    const blockedRegistries = new Set<string>();
     const cachedContainers = ctx.db.getAllContainers();
     const lastSuccessByKey = new Map<string, number>();
 
@@ -249,7 +285,7 @@ export async function scanContainers(ctx: AppContext): Promise<void> {
         continue;
       }
 
-      await checkContainer(ctx, containerInfo);
+      await checkContainer(ctx, containerInfo, latestDigestCache, blockedRegistries);
     }
 
     logger.info(
