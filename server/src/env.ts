@@ -14,6 +14,16 @@ const Env = z.object({
     .refine((val) => cron.validate(val)),
   DOCKER_SOCKET: z.string().default('/var/run/docker.sock'),
   IGNORE_CONTAINER_LABEL: z.string().default('konttivahti.ignore'),
+
+  SESSION_TIMEOUT_MS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(7 * 24 * 60 * 60 * 1000),
+  SESSION_CLEANUP_SCHEDULE: z
+    .string()
+    .default('0 */1 * * *')
+    .refine((val) => cron.validate(val)),
 });
 export type Env = z.infer<typeof Env>;
 

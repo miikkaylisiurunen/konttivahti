@@ -31,6 +31,12 @@ export const ContainersResponse = z.object({
 });
 export type ContainersResponse = z.infer<typeof ContainersResponse>;
 
+export const AuthState = z.object({
+  isInitialized: z.boolean(),
+  isAuthenticated: z.boolean(),
+});
+export type AuthState = z.infer<typeof AuthState>;
+
 export const ApiErrorResponse = z.object({
   error: z.string(),
   name: z.string(),

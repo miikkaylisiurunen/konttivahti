@@ -21,6 +21,20 @@ export function startJobs(ctx: AppContext): Jobs {
     }),
   );
 
+  tasks.push(
+    cron.schedule(ctx.env.SESSION_CLEANUP_SCHEDULE, () => {
+      try {
+        const deletedCount = ctx.db.cleanupExpiredSessions();
+
+        if (deletedCount > 0) {
+          logger.info({ deletedCount }, 'Expired sessions cleaned');
+        }
+      } catch (err) {
+        logger.error({ err }, 'Expired session cleanup failed');
+      }
+    }),
+  );
+
   return {
     stop: () => {
       for (const task of tasks) {

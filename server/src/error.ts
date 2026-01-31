@@ -16,3 +16,10 @@ export class HttpError extends Error {
     this.name = 'HttpError';
   }
 }
+
+export class InvalidSessionError extends HttpError {
+  constructor(message = 'Invalid or expired session', details?: HttpErrorDetails) {
+    super(401, message, details);
+    this.name = 'InvalidSessionError';
+  }
+}

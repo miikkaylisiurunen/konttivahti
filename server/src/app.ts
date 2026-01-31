@@ -1,14 +1,20 @@
 import express, { Request, Response, NextFunction } from 'express';
+import cookieParser from 'cookie-parser';
 import type { AppContext } from './types';
-import { ErrorResponse, HttpError } from './error';
+import { AuthCredentials } from './types';
+import { Auth } from './auth';
+import { ErrorResponse, HttpError, InvalidSessionError } from './error';
 import { getStatusContainers } from './status';
 import { getLogger } from './logger';
 
 const logger = getLogger('API');
 
 export function createApp(ctx: AppContext): express.Express {
+  const auth = new Auth(ctx);
+
   const app = express();
   app.use(express.json());
+  app.use(cookieParser());
   app.use((req, res, next) => {
     const start = Date.now();
     res.on('finish', () => {
@@ -25,16 +31,43 @@ export function createApp(ctx: AppContext): express.Express {
     next();
   });
 
+  app.get('/api/state', (req, res) => {
+    res.json(auth.getState(req, res));
+  });
+
+  app.post('/api/setup', async (req, res) => {
+    const parsed = AuthCredentials.safeParse(req.body);
+    if (!parsed.success) {
+      throw new HttpError(400, 'Invalid request body');
+    }
+
+    await auth.setup(parsed.data, req, res);
+  });
+
+  app.post('/api/login', async (req, res) => {
+    const parsed = AuthCredentials.safeParse(req.body);
+    if (!parsed.success) {
+      throw new HttpError(400, 'Invalid request body');
+    }
+
+    await auth.login(parsed.data, req, res);
+  });
+  app.post('/api/logout', auth.logout);
   app.get('/api/health', (req, res) => {
     res.json({ ok: true });
   });
 
-  app.get('/api/status', async (req, res) => {
+  const authRouter = express.Router();
+  authRouter.use(auth.requireAuth);
+
+  authRouter.get('/status', async (req, res) => {
     const results = await getStatusContainers(ctx);
     res.json({
       containers: results,
     });
   });
+
+  app.use('/api', authRouter);
 
   app.use(() => {
     throw new HttpError(404, 'Not found');
@@ -44,6 +77,9 @@ export function createApp(ctx: AppContext): express.Express {
     const loggerPayload = { err, method: req.method, path: req.originalUrl };
 
     if (err instanceof HttpError) {
+      if (err instanceof InvalidSessionError) {
+        auth.clearSessionCookie(res);
+      }
       logger.warn(loggerPayload, 'HttpError occurred');
       res.status(err.statusCode).json({
         error: err.message,

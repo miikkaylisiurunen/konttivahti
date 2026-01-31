@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from './useAuth';
 import { apiRequest, parseApiResponse } from '../utils/request';
 import { ContainersResponse } from '../types';
 import type { Container } from '../types';
@@ -8,15 +9,28 @@ interface UseContainersReturn {
   isLoading: boolean;
   hasLoadedOnce: boolean;
   error: string | null;
+  refetch: () => Promise<void>;
 }
 
 export function useContainers(): UseContainersReturn {
+  const { isAuthenticated } = useAuth();
   const [containers, setContainers] = useState<Container[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setContainers([]);
+      setError(null);
+      setIsLoading(false);
+      setHasLoadedOnce(false);
+    }
+  }, [isAuthenticated]);
+
   const fetchContainers = useCallback(async () => {
+    if (!isAuthenticated) return;
+
     setIsLoading(true);
     setError(null);
 
@@ -34,7 +48,7 @@ export function useContainers(): UseContainersReturn {
       setIsLoading(false);
       setHasLoadedOnce(true);
     }
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     void fetchContainers();
@@ -50,5 +64,6 @@ export function useContainers(): UseContainersReturn {
     isLoading,
     hasLoadedOnce,
     error,
+    refetch: fetchContainers,
   };
 }

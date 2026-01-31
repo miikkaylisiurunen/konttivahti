@@ -9,12 +9,6 @@ export interface AppContext {
   docker: Docker;
 }
 
-export const RegistryToken = z.object({
-  token: z.string().optional(),
-  access_token: z.string().optional(),
-});
-export type RegistryToken = z.infer<typeof RegistryToken>;
-
 export interface DbContainer {
   id: number;
   name: string;
@@ -33,3 +27,21 @@ export interface DbContainer {
 }
 
 export type ApiContainer = Omit<DbContainer, 'id'>;
+
+export const AuthState = z.object({
+  isInitialized: z.boolean(),
+  isAuthenticated: z.boolean(),
+});
+export type AuthState = z.infer<typeof AuthState>;
+
+export const AuthCredentials = z.object({
+  username: z.string().min(1),
+  password: z.string().min(1),
+});
+export type AuthCredentials = z.infer<typeof AuthCredentials>;
+
+export const RegistryToken = z.object({
+  token: z.string().optional(),
+  access_token: z.string().optional(),
+});
+export type RegistryToken = z.infer<typeof RegistryToken>;
