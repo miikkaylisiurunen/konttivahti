@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import type { ButtonHTMLAttributes, ComponentProps, ReactNode } from 'react';
 import { Link } from 'react-router';
 
 type ButtonProps = {
@@ -65,5 +65,21 @@ export function Button({
     <button type="button" className={sharedClassName} {...rest}>
       {content}
     </button>
+  );
+}
+
+type CompactButtonProps = Omit<ComponentProps<typeof Button>, 'label' | 'className' | 'size'> & {
+  label?: ReactNode;
+  className?: string;
+};
+
+export function CompactButton({ label, className, ...rest }: CompactButtonProps) {
+  const sharedClassName = className ?? '';
+
+  return (
+    <>
+      <Button {...rest} label={label} className={`max-sm:hidden ${sharedClassName}`} />
+      <Button {...rest} size="icon" icon={rest.icon} className={`sm:hidden ${sharedClassName}`} />
+    </>
   );
 }

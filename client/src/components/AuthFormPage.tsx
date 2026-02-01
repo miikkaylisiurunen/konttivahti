@@ -2,6 +2,7 @@ import { Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import type { SyntheticEvent } from 'react';
 import { toast } from 'sonner';
+import logo from '../assets/logo.svg';
 import { Button } from './Button';
 import { Card } from './Card';
 import { Input } from './Input';
@@ -43,6 +44,7 @@ export function AuthFormPage({
     <div className="flex min-h-screen items-center justify-center bg-surface-0 px-4 py-10 text-foreground">
       <Card className="w-full max-w-md">
         <div className="mb-8 text-center">
+          <img src={logo} alt="" className="mx-auto mb-2 h-16 w-auto" />
           <h1 className="text-2xl font-bold">Konttivahti</h1>
           <p className="text-sm text-foreground-muted">{description}</p>
         </div>

@@ -2,14 +2,20 @@ import { Login } from './pages/Login';
 import { LoadingScreen } from './components/LoadingScreen';
 import { useAuth } from './hooks/useAuth';
 import { Navigate, Outlet, Route, Routes } from 'react-router';
+import { AppHeader } from './components/AppHeader';
 import { HomePage } from './pages/HomePage';
 import { Setup } from './pages/Setup';
 import { RetryErrorState } from './components/RetryErrorState';
 
-function AppLayout() {
+interface AppLayoutProps {
+  onLogout: () => void;
+}
+
+function AppLayout({ onLogout }: AppLayoutProps) {
   return (
     <div className="min-h-screen bg-surface-0 text-foreground">
       <div className="mx-auto max-w-6xl p-4 sm:p-6">
+        <AppHeader onLogout={onLogout} />
         <Outlet />
       </div>
     </div>
@@ -17,7 +23,8 @@ function AppLayout() {
 }
 
 export function App() {
-  const { isInitialized, isAuthenticated, isCheckingAuth, authCheckError, checkAuth } = useAuth();
+  const { isInitialized, isAuthenticated, logout, isCheckingAuth, authCheckError, checkAuth } =
+    useAuth();
 
   if (isCheckingAuth) {
     return <LoadingScreen text="Loading..." />;
@@ -53,7 +60,7 @@ export function App() {
     <Routes>
       <Route path="/setup" element={<Navigate to="/" replace />} />
       <Route path="/login" element={<Navigate to="/" replace />} />
-      <Route element={<AppLayout />}>
+      <Route element={<AppLayout onLogout={logout} />}>
         <Route path="/" element={<HomePage />} />
       </Route>
     </Routes>
