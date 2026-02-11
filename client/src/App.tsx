@@ -4,6 +4,7 @@ import { useAuth } from './hooks/useAuth';
 import { Navigate, Outlet, Route, Routes } from 'react-router';
 import { AppHeader } from './components/AppHeader';
 import { HomePage } from './pages/HomePage';
+import { SettingsPage } from './pages/SettingsPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { Setup } from './pages/Setup';
 import { RetryErrorState } from './components/RetryErrorState';
@@ -63,6 +64,7 @@ export function App() {
       <Route path="/login" element={<Navigate to="/" replace />} />
       <Route element={<AppLayout onLogout={logout} />}>
         <Route path="/" element={<HomePage />} />
+        <Route path="/settings" element={<SettingsPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>

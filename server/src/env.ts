@@ -24,6 +24,8 @@ const Env = z.object({
     .string()
     .default('0 */1 * * *')
     .refine((val) => cron.validate(val)),
+
+  SHOUTRRR_BINARY: z.string().min(1).optional(),
 });
 export type Env = z.infer<typeof Env>;
 

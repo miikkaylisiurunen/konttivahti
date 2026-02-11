@@ -2,11 +2,12 @@ import express, { Request, Response, NextFunction } from 'express';
 import cookieParser from 'cookie-parser';
 import path from 'node:path';
 import type { AppContext } from './types';
-import { AuthCredentials } from './types';
+import { ApiSettings, AuthCredentials, NotificationEventCatalog, NotificationTest } from './types';
 import { Auth } from './auth';
 import { ErrorResponse, HttpError, InvalidSessionError } from './error';
 import { getStatusContainers } from './status';
 import { getLogger } from './logger';
+import { sendNotification } from './notify';
 
 const logger = getLogger('API');
 
@@ -67,6 +68,48 @@ export function createApp(ctx: AppContext): express.Express {
     res.json({
       containers: results,
     });
+  });
+
+  authRouter.post('/notifications/test', async (req, res) => {
+    const parsed = NotificationTest.safeParse(req.body);
+    if (!parsed.success) {
+      throw new HttpError(400, 'Invalid request body');
+    }
+
+    const result = await sendNotification(ctx, {
+      url: parsed.data.url,
+      message: 'Konttivahti test notification',
+      title: 'Konttivahti',
+    });
+
+    if (!result.attempted) {
+      throw new HttpError(503, 'Notification service not configured');
+    }
+
+    if (!result.sent) {
+      throw new HttpError(400, result.error ?? 'Test notification failed');
+    }
+
+    res.json(result);
+  });
+
+  authRouter.get('/settings', (req, res) => {
+    const settings = ctx.db.getSettings();
+    res.json({
+      ...settings,
+      notifications_available_events: NotificationEventCatalog,
+    });
+  });
+
+  authRouter.post('/settings', (req, res) => {
+    const parsed = ApiSettings.safeParse(req.body);
+    if (!parsed.success) {
+      throw new HttpError(400, 'Invalid request body');
+    }
+
+    ctx.db.setNotificationSettings(parsed.data);
+
+    res.json({ success: true });
   });
 
   app.use('/api', authRouter);

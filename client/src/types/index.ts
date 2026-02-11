@@ -31,6 +31,28 @@ export const ContainersResponse = z.object({
 });
 export type ContainersResponse = z.infer<typeof ContainersResponse>;
 
+export const NotificationEventDefinition = z.object({
+  id: z.string(),
+  label: z.string(),
+  description: z.string(),
+});
+export type NotificationEventDefinition = z.infer<typeof NotificationEventDefinition>;
+
+export const SettingsResponse = z.object({
+  notifications_enabled: z.boolean(),
+  notifications_recipients: z.array(z.string()),
+  notifications_events: z.array(z.string()),
+  notifications_available_events: z.array(NotificationEventDefinition),
+});
+export type SettingsResponse = z.infer<typeof SettingsResponse>;
+
+export const NotificationTestResponse = z.object({
+  attempted: z.boolean(),
+  sent: z.boolean(),
+  error: z.string().optional(),
+});
+export type NotificationTestResponse = z.infer<typeof NotificationTestResponse>;
+
 export const AuthState = z.object({
   isInitialized: z.boolean(),
   isAuthenticated: z.boolean(),

@@ -1,4 +1,4 @@
-import { Home, LogOut } from 'lucide-react';
+import { Home, LogOut, Settings } from 'lucide-react';
 import { Link, useLocation } from 'react-router';
 import { CompactButton } from './Button';
 import logo from '../assets/logo.svg';
@@ -10,6 +10,7 @@ interface AppHeaderProps {
 export function AppHeader({ onLogout }: AppHeaderProps) {
   const location = useLocation();
   const homeActive = location.pathname === '/';
+  const settingsActive = location.pathname.startsWith('/settings');
 
   return (
     <div className="mb-8 flex items-center justify-between border-b border-outline pb-4">
@@ -25,6 +26,13 @@ export function AppHeader({ onLogout }: AppHeaderProps) {
             icon={<Home className="size-4" aria-hidden="true" />}
             label="Home"
             className={homeActive ? 'bg-surface-1!' : ''}
+          />
+          <CompactButton
+            to="/settings"
+            variant="ghost"
+            icon={<Settings className="size-4" aria-hidden="true" />}
+            label="Settings"
+            className={settingsActive ? 'bg-surface-1!' : ''}
           />
         </nav>
       </div>

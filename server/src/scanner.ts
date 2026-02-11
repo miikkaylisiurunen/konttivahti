@@ -2,6 +2,7 @@ import type Docker from 'dockerode';
 import { getDockerHubDigest, getRegistryDigest } from './registry';
 import type { AppContext } from './types';
 import { getLogger } from './logger';
+import { notifyEvent } from './notify';
 
 const logger = getLogger('Scanner');
 
@@ -180,6 +181,11 @@ async function checkContainer(
     if (status === 'outdated') {
       if (!existing || existing.latestDigest !== latestDigest) {
         lastUpdateDetectedAt = now;
+        await notifyEvent(
+          ctx,
+          'update-available',
+          `Update available for ${parsed.registry}/${parsed.image} (${name}).`,
+        );
       }
     }
 
@@ -215,10 +221,9 @@ async function checkContainer(
     if (errorMsg.includes('429')) {
       if (!blockedRegistries.has(parsed.registry)) {
         blockedRegistries.add(parsed.registry);
-        logger.warn(
-          { registry: parsed.registry, image: key },
-          'Registry rate limit reached. Skipping remaining checks for this registry in current scan.',
-        );
+        const message = `Registry rate limit reached for ${parsed.registry}. Skipping remaining checks for this registry in current scan.`;
+        logger.warn({ registry: parsed.registry, image: key }, message);
+        await notifyEvent(ctx, 'scan-error', message);
       }
       return parsed;
     }
@@ -228,6 +233,10 @@ async function checkContainer(
       'Image check failed',
     );
     const now = Date.now();
+
+    if (!existing || existing.status !== 'error' || existing.error !== errorMsg) {
+      await notifyEvent(ctx, 'scan-error', `Image scan failed for ${name} (${key}): ${errorMsg}`);
+    }
 
     ctx.db.upsertContainer({
       name,

@@ -1,7 +1,7 @@
 import type Docker from 'dockerode';
 import { z } from 'zod';
-import { Env } from './env';
-import { DB } from './db';
+import type { DB } from './db';
+import type { Env } from './env';
 
 export interface AppContext {
   env: Env;
@@ -28,6 +28,11 @@ export interface DbContainer {
 
 export type ApiContainer = Omit<DbContainer, 'id'>;
 
+export const NotificationTest = z.object({
+  url: z.string().trim().min(1),
+});
+export type NotificationTest = z.infer<typeof NotificationTest>;
+
 export const AuthState = z.object({
   isInitialized: z.boolean(),
   isAuthenticated: z.boolean(),
@@ -45,3 +50,31 @@ export const RegistryToken = z.object({
   access_token: z.string().optional(),
 });
 export type RegistryToken = z.infer<typeof RegistryToken>;
+
+export const NotificationEventCatalog = [
+  {
+    id: 'update-available',
+    label: 'New version detected',
+    description: 'Alert when a container image has a newer version available.',
+  },
+  {
+    id: 'scan-error',
+    label: 'Image scan failed',
+    description: 'Notify when a registry lookup or scan throws an error.',
+  },
+] as const;
+export type NotificationEventCatalogEntry = (typeof NotificationEventCatalog)[number];
+export type NotificationEventKey = NotificationEventCatalogEntry['id'];
+
+export const ApiSettings = z.object({
+  notifications_enabled: z.boolean(),
+  notifications_recipients: z.array(z.string().trim().min(1)),
+  notifications_events: z
+    .array(z.string().trim().min(1))
+    .refine(
+      (events) =>
+        events.every((event) => NotificationEventCatalog.some((entry) => entry.id === event)),
+      { message: 'Invalid notification event key' },
+    ),
+});
+export type ApiSettings = z.infer<typeof ApiSettings>;

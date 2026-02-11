@@ -2,7 +2,8 @@ import Database from 'better-sqlite3';
 import { createHash, randomBytes } from 'crypto';
 import fs from 'fs';
 import path from 'path';
-import type { DbContainer } from './types';
+import type { ApiSettings, DbContainer } from './types';
+import { z } from 'zod';
 import { getLogger } from './logger';
 import { hashPassword } from './passwordHash';
 
@@ -25,6 +26,18 @@ interface Migration {
   name: string;
   sql: string;
 }
+
+const JsonStringArray = z
+  .string()
+  .transform((value) => JSON.parse(value))
+  .pipe(z.array(z.string()));
+
+const DbSettingsRow = z.object({
+  notifications_enabled: z.number().transform((value) => value === 1),
+  notifications_recipients: JsonStringArray,
+  notifications_events: JsonStringArray,
+});
+type DbSettingsRow = z.infer<typeof DbSettingsRow>;
 
 function loadMigrations(): Migration[] {
   const migrationsDir = path.resolve(__dirname, '..', 'migrations');
@@ -264,5 +277,43 @@ export class DB {
 
   close(): void {
     this.db.close();
+  }
+
+  getSettings(): DbSettingsRow {
+    const stmt = this.db.prepare(`
+      SELECT
+        notifications_enabled,
+        notifications_recipients,
+        notifications_events
+      FROM settings
+      WHERE id = 1
+    `);
+    const rawRow = stmt.get();
+    if (!rawRow) {
+      throw new Error('Settings row missing');
+    }
+    const row = DbSettingsRow.parse(rawRow);
+
+    return row;
+  }
+
+  setNotificationSettings(settings: ApiSettings): void {
+    const stmt = this.db.prepare(`
+      UPDATE settings
+      SET
+        notifications_enabled = ?,
+        notifications_recipients = ?,
+        notifications_events = ?
+      WHERE id = 1
+    `);
+
+    const result = stmt.run(
+      settings.notifications_enabled ? 1 : 0,
+      JSON.stringify(settings.notifications_recipients),
+      JSON.stringify(settings.notifications_events),
+    );
+    if (result.changes === 0) {
+      throw new Error('Settings row missing');
+    }
   }
 }

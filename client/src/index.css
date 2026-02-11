@@ -6,6 +6,7 @@
   --breakpoint-xs: 30rem;
   --color-surface-0: var(--color-zinc-950);
   --color-surface-1: var(--color-zinc-900);
+  --color-surface-2: var(--color-zinc-800);
   --color-foreground-strong: var(--color-zinc-100);
   --color-foreground: var(--color-zinc-200);
   --color-foreground-faint: var(--color-zinc-300);

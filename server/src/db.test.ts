@@ -296,6 +296,39 @@ describe('DB containers', () => {
   });
 });
 
+describe('DB settings', () => {
+  let db!: DB;
+
+  beforeEach(() => {
+    db = new DB(':memory:');
+    db.runMigrations();
+  });
+
+  afterEach(() => {
+    db.close();
+  });
+
+  it('stores notification settings', () => {
+    expect(db.getSettings()).toEqual({
+      notifications_enabled: true,
+      notifications_recipients: [],
+      notifications_events: [],
+    });
+
+    db.setNotificationSettings({
+      notifications_enabled: false,
+      notifications_recipients: ['discord://token@webhookId', 'mailto://example@example.com'],
+      notifications_events: ['update-available'],
+    });
+
+    expect(db.getSettings()).toEqual({
+      notifications_enabled: false,
+      notifications_recipients: ['discord://token@webhookId', 'mailto://example@example.com'],
+      notifications_events: ['update-available'],
+    });
+  });
+});
+
 describe('DB migrations', () => {
   let db!: DB;
 
@@ -313,8 +346,17 @@ describe('DB migrations', () => {
     const migrations = rawDb.prepare('SELECT COUNT(*) as count FROM migrations').get() as {
       count: number;
     };
+    const settingsRows = rawDb.prepare('SELECT COUNT(*) as count FROM settings').get() as {
+      count: number;
+    };
 
-    expect(migrations.count).toBe(2);
+    expect(migrations.count).toBe(3);
+    expect(settingsRows.count).toBe(1);
+    expect(db.getSettings()).toEqual({
+      notifications_enabled: true,
+      notifications_recipients: [],
+      notifications_events: [],
+    });
   });
 });
 
