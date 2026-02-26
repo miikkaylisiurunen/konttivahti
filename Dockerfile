@@ -1,4 +1,4 @@
-FROM node:20-slim AS web-builder
+FROM node:24.14-slim AS web-builder
 
 WORKDIR /app/web
 
@@ -8,7 +8,7 @@ RUN npm ci
 COPY client/ ./
 RUN npm run build
 
-FROM node:20-slim AS server-builder
+FROM node:24.14-slim AS server-builder
 
 WORKDIR /app
 
@@ -20,7 +20,7 @@ COPY server/src ./src
 
 RUN npm run build
 
-FROM node:20-slim AS shoutrrr-downloader
+FROM node:24.14-slim AS shoutrrr-downloader
 
 ARG TARGETARCH
 
@@ -42,7 +42,7 @@ RUN set -eux \
   && chmod +x /usr/local/bin/shoutrrr \
   && rm /tmp/shoutrrr.tar.gz
 
-FROM node:20-slim AS production
+FROM node:24.14-slim AS production
 
 WORKDIR /app
 
