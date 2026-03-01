@@ -2,9 +2,14 @@ import { Request, Response, NextFunction } from 'express';
 import type { AppContext } from './types';
 import { HttpError, InvalidSessionError } from './error';
 import { getLogger } from './logger';
+import { notifyEvent } from './notify';
 import { verifyPasswordHash } from './passwordHash';
 
 const logger = getLogger('Auth');
+
+const FAILED_LOGIN_NOTIFY_THRESHOLD = 10;
+const FAILED_LOGIN_WINDOW_MS = 10 * 60 * 1000;
+const FAILED_LOGIN_NOTIFY_COOLDOWN_MS = 60 * 60 * 1000;
 
 export const SESSION_COOKIE_NAME = 'konttivahti_session';
 const SESSION_COOKIE_OPTIONS = {
@@ -15,6 +20,10 @@ const SESSION_COOKIE_OPTIONS = {
 };
 
 export class Auth {
+  private failedLoginAttempts = 0;
+  private failedLoginWindowStartMs: number | null = null;
+  private failedLoginLastNotifiedAtMs: number | null = null;
+
   constructor(private readonly ctx: AppContext) {}
 
   private verifyAdminCredentials = async (username: string, password: string): Promise<boolean> => {
@@ -30,6 +39,32 @@ export class Auth {
 
   private getSessionToken = (req: Request): string | null => {
     return req.cookies?.[SESSION_COOKIE_NAME] ?? null;
+  };
+
+  private recordFailedLoginAttempt = (): void => {
+    const nowMs = Date.now();
+    if (
+      this.failedLoginWindowStartMs === null ||
+      nowMs - this.failedLoginWindowStartMs > FAILED_LOGIN_WINDOW_MS
+    ) {
+      this.failedLoginWindowStartMs = nowMs;
+      this.failedLoginAttempts = 1;
+    } else {
+      this.failedLoginAttempts++;
+    }
+
+    if (this.failedLoginAttempts < FAILED_LOGIN_NOTIFY_THRESHOLD) {
+      return;
+    }
+
+    const inCooldown =
+      this.failedLoginLastNotifiedAtMs !== null &&
+      nowMs - this.failedLoginLastNotifiedAtMs < FAILED_LOGIN_NOTIFY_COOLDOWN_MS;
+
+    if (!inCooldown) {
+      this.failedLoginLastNotifiedAtMs = nowMs;
+      void notifyEvent(this.ctx, 'suspicious-login', 'Detected repeated failed login attempts.');
+    }
   };
 
   requireAuth = (req: Request, res: Response, next: NextFunction): void => {
@@ -133,10 +168,13 @@ export class Auth {
 
     if (!(await this.verifyAdminCredentials(credentials.username, credentials.password))) {
       logger.warn({ ip: req.ip, username: credentials.username }, 'Login failed');
+      this.recordFailedLoginAttempt();
       throw new HttpError(401, 'Invalid credentials');
     }
 
     const token = this.ctx.db.createSession(this.ctx.env.SESSION_TIMEOUT_MS);
+    this.failedLoginAttempts = 0;
+    this.failedLoginWindowStartMs = null;
 
     res.cookie(SESSION_COOKIE_NAME, token, {
       ...SESSION_COOKIE_OPTIONS,

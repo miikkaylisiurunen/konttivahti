@@ -62,6 +62,11 @@ export const NotificationEventCatalog = [
     label: 'Image scan failed',
     description: 'Notify when a registry lookup or scan throws an error.',
   },
+  {
+    id: 'suspicious-login',
+    label: 'Suspicious login attempts',
+    description: 'Notify on repeated failed login attempts.',
+  },
 ] as const;
 export type NotificationEventCatalogEntry = (typeof NotificationEventCatalog)[number];
 export type NotificationEventKey = NotificationEventCatalogEntry['id'];
