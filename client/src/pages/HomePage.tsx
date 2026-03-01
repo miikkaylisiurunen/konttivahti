@@ -1,5 +1,6 @@
 import { ContainersTable } from '../components/ContainersTable';
 import { LoadingScreen } from '../components/LoadingScreen';
+import { SummaryCards } from '../components/SummaryCards';
 import { useContainers } from '../hooks/useContainers';
 import { RetryErrorState } from '../components/RetryErrorState';
 
@@ -20,5 +21,10 @@ export function HomePage() {
     return <RetryErrorState message={containersError} onRetry={refetch} />;
   }
 
-  return <ContainersTable containers={containers} />;
+  return (
+    <>
+      <SummaryCards containers={containers} />
+      <ContainersTable containers={containers} />
+    </>
+  );
 }
