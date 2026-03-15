@@ -79,15 +79,11 @@ function StatusCell({ status, error }: StatusCellProps) {
 }
 
 function ColumnCell({ column, container }: ColumnCellProps) {
-  if (column.key === 'status') {
+  if (column.kind === 'status') {
     return <StatusCell key={column.key} status={container.status} error={container.error} />;
   }
 
-  if (
-    column.key === 'createdAt' ||
-    column.key === 'lastSuccessAt' ||
-    column.key === 'lastUpdateDetectedAt'
-  ) {
+  if (column.kind === 'date') {
     const value = container[column.key];
 
     return (
@@ -98,7 +94,7 @@ function ColumnCell({ column, container }: ColumnCellProps) {
     );
   }
 
-  if (column.key === 'latestDigest' || column.key === 'localDigest') {
+  if (column.kind === 'digest') {
     const value = container[column.key];
 
     return (
@@ -127,7 +123,7 @@ export function ContainersTableRow({ container }: ContainersTableRowProps) {
   return (
     <tr className="border-b border-outline hover:bg-surface-1/50 last:border-b-0">
       {COLUMNS.map((column) => (
-        <ColumnCell key={column.label} column={column} container={container} />
+        <ColumnCell key={column.key} column={column} container={container} />
       ))}
     </tr>
   );
