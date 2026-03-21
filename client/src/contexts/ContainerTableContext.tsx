@@ -2,14 +2,19 @@
 import { createContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { Container } from '../types';
-import { getRegistryLabel, getTagLabel } from '../utils/containerUtils';
+import { getRegistryLabel, getTagLabel, type ColumnKey } from '../utils/containerUtils';
+
+type SortDirection = 'asc' | 'desc';
 
 export interface ContainerTableContextType {
+  sortKey: ColumnKey;
+  sortDirection: SortDirection;
   currentPage: number;
   searchQuery: string;
   filteredCount: number;
   paginatedContainers: Container[];
   totalPages: number;
+  handleSort: (key: ColumnKey) => void;
   handleSearch: (value: string) => void;
   handlePrevious: () => void;
   handleNext: () => void;
@@ -24,9 +29,35 @@ interface ContainerTableProviderProps {
   children: ReactNode;
 }
 
+function getSortableValue(container: Container, key: ColumnKey): number | string {
+  if (key === 'status') {
+    if (container.status === 'up_to_date') return 3;
+    if (container.status === 'outdated') return 2;
+    if (container.status === 'local') return 1;
+    if (container.status === 'error' || container.error) return 0;
+
+    return -1;
+  }
+
+  if (key === 'registry') {
+    return getRegistryLabel(container).toLowerCase();
+  }
+
+  if (key === 'tag') {
+    return getTagLabel(container).toLowerCase();
+  }
+
+  const value = container[key];
+  if (typeof value === 'number') return value;
+
+  return String(value ?? '').toLowerCase();
+}
+
 const ITEMS_PER_PAGE = 10;
 
 export function ContainerTableProvider({ containers, children }: ContainerTableProviderProps) {
+  const [sortKey, setSortKey] = useState<ColumnKey>('name');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -54,9 +85,27 @@ export function ContainerTableProvider({ containers, children }: ContainerTableP
     });
   }, [containers, searchQuery]);
 
-  const totalPages = Math.ceil(filteredContainers.length / ITEMS_PER_PAGE);
+  const sortedContainers = useMemo(() => {
+    return [...filteredContainers].sort((a, b) => {
+      const aVal = getSortableValue(a, sortKey);
+      const bVal = getSortableValue(b, sortKey);
+      const comparison = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+
+      if (comparison === 0 && sortKey !== 'name') {
+        const aName = a.name.toLowerCase();
+        const bName = b.name.toLowerCase();
+        const nameComparison = aName < bName ? -1 : aName > bName ? 1 : 0;
+
+        return sortDirection === 'asc' ? nameComparison : -nameComparison;
+      }
+
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [filteredContainers, sortDirection, sortKey]);
+
+  const totalPages = Math.ceil(sortedContainers.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedContainers = filteredContainers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  const paginatedContainers = sortedContainers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
   useEffect(() => {
     if (totalPages === 0) {
@@ -68,6 +117,16 @@ export function ContainerTableProvider({ containers, children }: ContainerTableP
       setCurrentPage(totalPages);
     }
   }, [currentPage, totalPages]);
+
+  const handleSort = (key: ColumnKey) => {
+    if (sortKey === key) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+      return;
+    }
+
+    setSortKey(key);
+    setSortDirection('asc');
+  };
 
   const handleSearch = (value: string) => {
     setSearchQuery(value);
@@ -83,11 +142,14 @@ export function ContainerTableProvider({ containers, children }: ContainerTableP
   };
 
   const value: ContainerTableContextType = {
+    sortKey,
+    sortDirection,
     currentPage,
     searchQuery,
     filteredCount: filteredContainers.length,
     paginatedContainers,
     totalPages,
+    handleSort,
     handleSearch,
     handlePrevious,
     handleNext,
