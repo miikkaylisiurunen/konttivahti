@@ -28,6 +28,7 @@ export type ColumnKey = keyof Pick<
 
 export type ColumnKind = 'text' | 'status' | 'date' | 'digest';
 export type StatusVariant = Exclude<ContainerStatus, null> | 'unknown';
+export type DateFormat = 'relative' | 'absolute' | 'iso';
 
 export const STATUS_LABELS: Record<StatusVariant, string> = {
   up_to_date: 'Up to date',
@@ -86,6 +87,17 @@ export const COLUMNS: ContainerColumn[] = [
     kind: 'digest',
     Icon: Fingerprint,
   },
+];
+
+export const STATUS_FILTERS: Array<{
+  value: StatusVariant;
+  dotClass: string;
+}> = [
+  { value: 'up_to_date', dotClass: 'bg-emerald-400' },
+  { value: 'outdated', dotClass: 'bg-amber-400' },
+  { value: 'local', dotClass: 'bg-sky-400' },
+  { value: 'error', dotClass: 'bg-red-500' },
+  { value: 'unknown', dotClass: 'bg-zinc-400' },
 ];
 
 export function getRegistryLabel(container: Container): string {

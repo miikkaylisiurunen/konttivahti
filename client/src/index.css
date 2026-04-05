@@ -14,6 +14,7 @@
   --color-foreground-subtle: var(--color-zinc-500);
   --color-foreground-placeholder: var(--color-zinc-600);
   --color-outline: var(--color-zinc-800);
+  --color-outline-strong: var(--color-zinc-700);
   --color-focus: var(--color-zinc-400);
   --shadow-popover: 0 20px 40px -16px rgb(0 0 0 / 0.3);
 }

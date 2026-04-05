@@ -7,6 +7,7 @@ interface HeaderCellProps {
   label: string;
   widthClassName: string;
   Icon: LucideIcon;
+  isVisible: boolean;
   isSorted: boolean;
   isAscending: boolean;
   onSort: (key: ColumnKey) => void;
@@ -17,10 +18,13 @@ function HeaderCell({
   label,
   widthClassName,
   Icon,
+  isVisible,
   isSorted,
   isAscending,
   onSort,
 }: HeaderCellProps) {
+  if (!isVisible) return null;
+
   return (
     <th className={`${widthClassName} p-0 text-left`}>
       <button
@@ -40,7 +44,7 @@ function HeaderCell({
 }
 
 export function ContainersTableHeader() {
-  const { sortKey, sortDirection, handleSort } = useContainerTable();
+  const { settings, sortKey, sortDirection, handleSort } = useContainerTable();
   const isSorted = (column: ColumnKey) => sortKey === column;
   const isAscending = sortDirection === 'asc';
 
@@ -54,6 +58,7 @@ export function ContainersTableHeader() {
             label={column.label}
             widthClassName={column.widthClassName}
             Icon={column.Icon}
+            isVisible={settings.visibleColumns.includes(column.key)}
             isSorted={isSorted(column.key)}
             isAscending={isAscending}
             onSort={handleSort}

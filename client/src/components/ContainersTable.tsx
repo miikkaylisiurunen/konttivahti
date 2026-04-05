@@ -1,5 +1,6 @@
 import { Package } from 'lucide-react';
 import type { Container } from '../types';
+import { STATUS_FILTERS } from '../utils/containerUtils';
 import { useContainerTable } from '../hooks/useContainerTable';
 import { Card } from './Card';
 import { Input } from './Input';
@@ -7,15 +8,18 @@ import { ContainerTableProvider } from '../contexts/ContainerTableContext';
 import { ContainersTableHeader } from './ContainersTableHeader';
 import { ContainersTablePagination } from './ContainersTablePagination';
 import { ContainersTableRow } from './ContainersTableRow';
+import { ContainersTableSettingsMenu } from './ContainersTableSettingsMenu';
 
 interface ContainersTableProps {
   containers: Container[];
 }
 
 function ContainersTableContent() {
-  const { searchQuery, filteredCount, paginatedContainers, handleSearch } = useContainerTable();
+  const { searchQuery, filteredCount, paginatedContainers, settings, handleSearch } =
+    useContainerTable();
   const isEmptyState = filteredCount === 0;
-  const isFilteredEmpty = isEmptyState && searchQuery.trim() !== '';
+  const hasStatusFilter = settings.statusFilters.length !== STATUS_FILTERS.length;
+  const isFilteredEmpty = isEmptyState && (searchQuery.trim() !== '' || hasStatusFilter);
 
   return (
     <>
@@ -28,6 +32,9 @@ function ContainersTableContent() {
             value={searchQuery}
             onChange={(event) => handleSearch(event.target.value)}
           />
+        </div>
+        <div className="w-full xs:w-auto">
+          <ContainersTableSettingsMenu />
         </div>
       </div>
       {isEmptyState ? (
@@ -47,7 +54,12 @@ function ContainersTableContent() {
               <ContainersTableHeader />
               <tbody>
                 {paginatedContainers.map((container) => (
-                  <ContainersTableRow key={container.name} container={container} />
+                  <ContainersTableRow
+                    key={container.name}
+                    container={container}
+                    visibleColumns={settings.visibleColumns}
+                    dateFormat={settings.dateFormat}
+                  />
                 ))}
               </tbody>
             </table>

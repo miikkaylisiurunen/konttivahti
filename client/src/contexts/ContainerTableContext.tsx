@@ -2,20 +2,37 @@
 import { createContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { Container } from '../types';
-import { getRegistryLabel, getTagLabel, type ColumnKey } from '../utils/containerUtils';
+import {
+  COLUMNS,
+  STATUS_FILTERS,
+  getRegistryLabel,
+  getTagLabel,
+  type DateFormat,
+  type ColumnKey,
+  type StatusVariant,
+} from '../utils/containerUtils';
 
 type SortDirection = 'asc' | 'desc';
+
+interface TableSettings {
+  statusFilters: StatusVariant[];
+  dateFormat: DateFormat;
+  itemsPerPage: number;
+  visibleColumns: ColumnKey[];
+}
 
 export interface ContainerTableContextType {
   sortKey: ColumnKey;
   sortDirection: SortDirection;
   currentPage: number;
   searchQuery: string;
+  settings: TableSettings;
   filteredCount: number;
   paginatedContainers: Container[];
   totalPages: number;
   handleSort: (key: ColumnKey) => void;
   handleSearch: (value: string) => void;
+  handleSettingsChange: (nextSettings: TableSettings) => void;
   handlePrevious: () => void;
   handleNext: () => void;
 }
@@ -53,18 +70,25 @@ function getSortableValue(container: Container, key: ColumnKey): number | string
   return String(value ?? '').toLowerCase();
 }
 
-const ITEMS_PER_PAGE = 10;
-
 export function ContainerTableProvider({ containers, children }: ContainerTableProviderProps) {
   const [sortKey, setSortKey] = useState<ColumnKey>('name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
+  const [settings, setSettings] = useState<TableSettings>({
+    statusFilters: STATUS_FILTERS.map((status) => status.value),
+    dateFormat: 'relative',
+    itemsPerPage: 10,
+    visibleColumns: COLUMNS.map((column) => column.key),
+  });
 
   const filteredContainers = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
 
     return containers.filter((container) => {
+      const statusKey: StatusVariant = container.error ? 'error' : (container.status ?? 'unknown');
+      if (!settings.statusFilters.includes(statusKey)) return false;
+
       if (!query) return true;
 
       const latestDigest = container.latestDigest ?? '';
@@ -83,7 +107,7 @@ export function ContainerTableProvider({ containers, children }: ContainerTableP
         latestDigest.toLowerCase().includes(query)
       );
     });
-  }, [containers, searchQuery]);
+  }, [containers, searchQuery, settings.statusFilters]);
 
   const sortedContainers = useMemo(() => {
     return [...filteredContainers].sort((a, b) => {
@@ -103,9 +127,12 @@ export function ContainerTableProvider({ containers, children }: ContainerTableP
     });
   }, [filteredContainers, sortDirection, sortKey]);
 
-  const totalPages = Math.ceil(sortedContainers.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedContainers = sortedContainers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(sortedContainers.length / settings.itemsPerPage);
+  const startIndex = (currentPage - 1) * settings.itemsPerPage;
+  const paginatedContainers = sortedContainers.slice(
+    startIndex,
+    startIndex + settings.itemsPerPage,
+  );
 
   useEffect(() => {
     if (totalPages === 0) {
@@ -133,6 +160,11 @@ export function ContainerTableProvider({ containers, children }: ContainerTableP
     setCurrentPage(1);
   };
 
+  const handleSettingsChange = (nextSettings: TableSettings) => {
+    setSettings(nextSettings);
+    setCurrentPage(1);
+  };
+
   const handlePrevious = () => {
     setCurrentPage((prev) => Math.max(prev - 1, 1));
   };
@@ -146,11 +178,13 @@ export function ContainerTableProvider({ containers, children }: ContainerTableP
     sortDirection,
     currentPage,
     searchQuery,
+    settings,
     filteredCount: filteredContainers.length,
     paginatedContainers,
     totalPages,
     handleSort,
     handleSearch,
+    handleSettingsChange,
     handlePrevious,
     handleNext,
   };
