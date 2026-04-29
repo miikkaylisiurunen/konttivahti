@@ -64,7 +64,7 @@ export function SettingsRecipientRow({
       <div className="min-w-0 flex-1">
         <Input
           name={name}
-          type="text"
+          type="password"
           placeholder="discord://token@webhookId"
           value={value}
           onChange={(event) => onChange(event.target.value)}
