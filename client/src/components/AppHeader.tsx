@@ -14,7 +14,7 @@ export function AppHeader({ onLogout }: AppHeaderProps) {
   const settingsActive = location.pathname.startsWith('/settings');
 
   return (
-    <div className="mb-8 flex items-center justify-between border-b border-outline pb-4">
+    <div className="mb-8 flex items-center justify-between">
       <div className="flex min-w-0 items-center space-x-2 md:space-x-6">
         <Link to="/" className="flex items-center space-x-2 text-2xl font-bold">
           <img src={logo} alt="" className="h-10 w-auto" />
