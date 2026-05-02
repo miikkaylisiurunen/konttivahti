@@ -12,6 +12,7 @@ const Env = z.object({
     .string()
     .default('0 */6 * * *')
     .refine((val) => cron.validate(val)),
+  DOCKER_HOST: z.string().min(1).optional(),
   DOCKER_SOCKET: z.string().default('/var/run/docker.sock'),
   IGNORE_CONTAINER_LABEL: z.string().default('konttivahti.ignore'),
 

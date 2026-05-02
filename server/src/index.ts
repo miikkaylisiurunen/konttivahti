@@ -1,9 +1,9 @@
-import Dockerode from 'dockerode';
 import { startJobs } from './jobs';
 import { getEnv } from './env';
 import { DB } from './db';
 import { createApp } from './app';
 import { getLogger } from './logger';
+import { createDockerClient } from './docker';
 
 const logger = getLogger('Server');
 
@@ -12,7 +12,7 @@ function main() {
   const ctx = {
     env,
     db: new DB(env.DATABASE_PATH),
-    docker: new Dockerode({ socketPath: env.DOCKER_SOCKET }),
+    docker: createDockerClient(env),
   };
 
   ctx.db.runMigrations();
