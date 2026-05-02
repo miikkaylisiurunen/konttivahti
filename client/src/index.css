@@ -4,19 +4,50 @@
 
 @theme {
   --breakpoint-xs: 30rem;
+  --color-surface-0: var(--color-zinc-50);
+  --color-surface-1: var(--color-white);
+  --color-surface-2: var(--color-zinc-100);
+  --color-surface-inverse: var(--color-zinc-900);
+  --color-foreground-strong: var(--color-zinc-950);
+  --color-foreground: var(--color-zinc-800);
+  --color-foreground-faint: var(--color-zinc-700);
+  --color-foreground-muted: var(--color-zinc-500);
+  --color-foreground-subtle: var(--color-zinc-400);
+  --color-foreground-placeholder: var(--color-zinc-400);
+  --color-foreground-inverse: var(--color-zinc-50);
+  --color-outline: var(--color-zinc-200);
+  --color-outline-strong: var(--color-zinc-300);
+  --color-focus: var(--color-zinc-500);
+  --shadow-popover: 0 20px 40px -16px rgb(15 23 42 / 0.2);
+}
+
+:root {
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
   --color-surface-0: var(--color-zinc-950);
   --color-surface-1: var(--color-zinc-900);
   --color-surface-2: var(--color-zinc-800);
+  --color-surface-inverse: var(--color-zinc-200);
   --color-foreground-strong: var(--color-zinc-100);
   --color-foreground: var(--color-zinc-200);
   --color-foreground-faint: var(--color-zinc-300);
   --color-foreground-muted: var(--color-zinc-400);
   --color-foreground-subtle: var(--color-zinc-500);
   --color-foreground-placeholder: var(--color-zinc-600);
+  --color-foreground-inverse: var(--color-zinc-900);
   --color-outline: var(--color-zinc-800);
   --color-outline-strong: var(--color-zinc-700);
   --color-focus: var(--color-zinc-400);
   --shadow-popover: 0 20px 40px -16px rgb(0 0 0 / 0.3);
+}
+
+.theme-transition-disabled *,
+.theme-transition-disabled *::before,
+.theme-transition-disabled *::after {
+  transition: none !important;
 }
 
 @layer base {

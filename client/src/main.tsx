@@ -4,15 +4,18 @@ import { BrowserRouter } from 'react-router';
 import './index.css';
 import { App } from './App.tsx';
 import { AuthProvider } from './contexts/AuthContext.tsx';
-import { Toaster } from 'sonner';
+import { ThemeProvider } from './contexts/ThemeContext.tsx';
+import { ThemedToaster } from './components/ThemedToaster.tsx';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <AuthProvider>
-      <Toaster theme="dark" richColors />
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <ThemedToaster />
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </AuthProvider>
+    </ThemeProvider>
   </StrictMode>,
 );

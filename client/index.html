@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
@@ -11,6 +11,31 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no"
     />
+    <script>
+      (() => {
+        const storedTheme = localStorage.getItem('konttivahti-theme');
+        const theme = ['light', 'dark', 'system'].includes(storedTheme) ? storedTheme : 'system';
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.classList.toggle(
+          'dark',
+          theme === 'dark' || (theme === 'system' && prefersDark),
+        );
+      })();
+    </script>
+    <!-- first-paint fallback to prevent flash -->
+    <style>
+      html,
+      body {
+        background: #fafafa;
+        color: #27272a;
+      }
+
+      html.dark,
+      html.dark body {
+        background: #09090b;
+        color: #e4e4e7;
+      }
+    </style>
     <title>Konttivahti</title>
   </head>
   <body class="bg-surface-0 antialiased">

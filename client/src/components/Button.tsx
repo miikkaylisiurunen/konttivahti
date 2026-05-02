@@ -24,7 +24,7 @@ export function Button({
     primary:
       'border border-outline bg-surface-0/60 text-foreground-strong hover:bg-surface-1/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-60',
     secondary:
-      'border border-zinc-200 bg-zinc-200 text-zinc-900 hover:border-zinc-100 hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:border-zinc-400 disabled:bg-zinc-400 disabled:text-zinc-700',
+      'border border-surface-inverse bg-surface-inverse text-foreground-inverse hover:border-foreground-faint hover:bg-foreground-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:border-outline-strong disabled:bg-outline-strong disabled:text-foreground-muted',
     ghost:
       'border border-transparent bg-transparent text-foreground-faint hover:bg-surface-1/40 hover:text-foreground-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:text-foreground-placeholder',
   }[variant];
@@ -69,17 +69,36 @@ export function Button({
 }
 
 type CompactButtonProps = Omit<ComponentProps<typeof Button>, 'label' | 'className' | 'size'> & {
+  compactUntil?: 'sm' | 'md';
   label?: ReactNode;
   className?: string;
 };
 
-export function CompactButton({ label, className, ...rest }: CompactButtonProps) {
+export function CompactButton({
+  compactUntil = 'sm',
+  label,
+  className,
+  ...rest
+}: CompactButtonProps) {
   const sharedClassName = className ?? '';
+  const labeledClassName = {
+    sm: 'max-sm:hidden',
+    md: 'max-md:hidden',
+  }[compactUntil];
+  const iconClassName = {
+    sm: 'sm:hidden',
+    md: 'md:hidden',
+  }[compactUntil];
 
   return (
     <>
-      <Button {...rest} label={label} className={`max-sm:hidden ${sharedClassName}`} />
-      <Button {...rest} size="icon" icon={rest.icon} className={`sm:hidden ${sharedClassName}`} />
+      <Button {...rest} label={label} className={`${labeledClassName} ${sharedClassName}`} />
+      <Button
+        {...rest}
+        size="icon"
+        icon={rest.icon}
+        className={`${iconClassName} ${sharedClassName}`}
+      />
     </>
   );
 }

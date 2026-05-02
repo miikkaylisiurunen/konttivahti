@@ -14,28 +14,33 @@ interface StatusConfig {
 
 const STATUS_CONFIGS: Record<StatusVariant, StatusConfig> = {
   error: {
-    pillClass: 'border-red-500/20 bg-red-500/10 text-red-400',
-    dotClass: 'bg-red-400',
+    pillClass:
+      'border-red-200 bg-red-50 text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-400',
+    dotClass: 'bg-red-500 dark:bg-red-400',
     description: 'An error occurred during status check',
   },
   up_to_date: {
-    pillClass: 'border-emerald-500/20 bg-emerald-500/10 text-emerald-400',
-    dotClass: 'bg-emerald-400',
+    pillClass:
+      'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400',
+    dotClass: 'bg-emerald-500 dark:bg-emerald-400',
     description: 'You are using the latest version of this image',
   },
   outdated: {
-    pillClass: 'border-amber-500/20 bg-amber-500/10 text-amber-400',
-    dotClass: 'bg-amber-400',
+    pillClass:
+      'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-400',
+    dotClass: 'bg-amber-500 dark:bg-amber-400',
     description: 'This image has a newer version available',
   },
   local: {
-    pillClass: 'border-sky-500/20 bg-sky-500/10 text-sky-300',
-    dotClass: 'bg-sky-300',
+    pillClass:
+      'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-500/20 dark:bg-sky-500/10 dark:text-sky-300',
+    dotClass: 'bg-sky-500 dark:bg-sky-300',
     description: 'Image is local-only or missing a registry digest',
   },
   unknown: {
-    pillClass: 'border-zinc-500/30 bg-zinc-500/10 text-zinc-300',
-    dotClass: 'bg-zinc-400',
+    pillClass:
+      'border-zinc-300 bg-zinc-100 text-zinc-700 dark:border-zinc-500/30 dark:bg-zinc-500/10 dark:text-zinc-300',
+    dotClass: 'bg-zinc-500 dark:bg-zinc-400',
     description: 'Status has not been checked yet',
   },
 };
