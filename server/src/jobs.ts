@@ -1,6 +1,6 @@
 import cron, { type ScheduledTask } from 'node-cron';
 import type { AppContext } from './types';
-import { scanContainers } from './scanner';
+import { startScan } from './scanRunner';
 import { getLogger } from './logger';
 
 const logger = getLogger('Jobs');
@@ -14,10 +14,11 @@ export function startJobs(ctx: AppContext): Jobs {
 
   tasks.push(
     cron.schedule(ctx.env.SCAN_SCHEDULE, () => {
-      logger.info({ schedule: ctx.env.SCAN_SCHEDULE }, 'Scheduled scan started');
-      scanContainers(ctx).catch((err) => {
-        logger.error({ err }, 'Scheduled scan failed');
-      });
+      const result = startScan(ctx);
+
+      if (result.started) {
+        logger.info({ schedule: ctx.env.SCAN_SCHEDULE }, 'Scheduled scan started');
+      }
     }),
   );
 
