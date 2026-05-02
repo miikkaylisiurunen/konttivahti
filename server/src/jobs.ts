@@ -14,11 +14,7 @@ export function startJobs(ctx: AppContext): Jobs {
 
   tasks.push(
     cron.schedule(ctx.env.SCAN_SCHEDULE, () => {
-      const result = startScan(ctx);
-
-      if (result.started) {
-        logger.info({ schedule: ctx.env.SCAN_SCHEDULE }, 'Scheduled scan started');
-      }
+      startScan(ctx, 'scheduled');
     }),
   );
 

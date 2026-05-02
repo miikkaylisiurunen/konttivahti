@@ -22,8 +22,8 @@ describe('startScan', () => {
     });
     mockedScanContainers.mockReturnValueOnce(scanPromise);
 
-    const first = startScan(ctx);
-    const second = startScan(ctx);
+    const first = startScan(ctx, 'scheduled');
+    const second = startScan(ctx, 'manual');
 
     expect(first.started).toBe(true);
     expect(second.started).toBe(false);
@@ -39,11 +39,11 @@ describe('startScan', () => {
   it('allows a new scan after the active scan finishes', async () => {
     mockedScanContainers.mockResolvedValue(undefined);
 
-    const first = startScan(ctx);
+    const first = startScan(ctx, 'scheduled');
     await vi.waitFor(() => {
       expect(getScanState().isScanning).toBe(false);
     });
-    const second = startScan(ctx);
+    const second = startScan(ctx, 'manual');
     await vi.waitFor(() => {
       expect(getScanState().isScanning).toBe(false);
     });

@@ -15,6 +15,8 @@ export interface ScanStartResult {
   scan: ScanState;
 }
 
+export type ScanSource = 'manual' | 'scheduled';
+
 let activeScan: Promise<void> | null = null;
 let startedAt: number | null = null;
 let lastFinishedAt: number | null = null;
@@ -27,9 +29,9 @@ export function getScanState(): ScanState {
   };
 }
 
-export function startScan(ctx: AppContext): ScanStartResult {
+export function startScan(ctx: AppContext, source: ScanSource): ScanStartResult {
   if (activeScan) {
-    logger.info({ startedAt }, 'Skipping scan because another scan is running');
+    logger.info({ source, startedAt }, 'Skipping scan because another scan is running');
     return {
       started: false,
       scan: getScanState(),
@@ -37,10 +39,11 @@ export function startScan(ctx: AppContext): ScanStartResult {
   }
 
   startedAt = Date.now();
+  logger.info({ source }, 'Scan started');
 
   activeScan = scanContainers(ctx)
     .catch((err) => {
-      logger.error({ err }, 'Scan failed');
+      logger.error({ err, source }, 'Scan failed');
     })
     .finally(() => {
       activeScan = null;

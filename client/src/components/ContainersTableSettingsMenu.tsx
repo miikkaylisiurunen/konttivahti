@@ -136,8 +136,8 @@ export function ContainersTableSettingsMenu() {
   return (
     <Menu.Root>
       <Menu.Trigger className="flex w-full min-w-50 cursor-default select-none items-center justify-between rounded-xl border border-outline bg-surface-0 px-4 py-2.5 text-sm text-foreground-strong transition hover:border-outline-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus data-popup-open:border-outline-strong xs:w-auto">
-        <span className="mr-3 flex items-center font-medium text-foreground-faint">
-          <SlidersHorizontal className="size-4 text-foreground-muted mr-2" />
+        <span className="mr-3 flex items-center font-medium text-foreground-strong">
+          <SlidersHorizontal className="size-4 text-foreground-strong mr-2" />
           Settings
         </span>
         <ChevronDown className="size-4 text-foreground-muted" />

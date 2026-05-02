@@ -26,10 +26,24 @@ export const Container = z.object({
 });
 export type Container = z.infer<typeof Container>;
 
+export const ScanState = z.object({
+  isScanning: z.boolean(),
+  startedAt: z.number().nullable(),
+  lastFinishedAt: z.number().nullable(),
+});
+export type ScanState = z.infer<typeof ScanState>;
+
 export const ContainersResponse = z.object({
   containers: z.array(Container),
+  scan: ScanState,
 });
 export type ContainersResponse = z.infer<typeof ContainersResponse>;
+
+export const ScanStartResponse = z.object({
+  started: z.boolean(),
+  scan: ScanState,
+});
+export type ScanStartResponse = z.infer<typeof ScanStartResponse>;
 
 export const NotificationEventDefinition = z.object({
   id: z.string(),

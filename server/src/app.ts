@@ -8,6 +8,7 @@ import { ErrorResponse, HttpError, InvalidSessionError } from './error';
 import { getStatusContainers } from './status';
 import { getLogger } from './logger';
 import { sendNotification } from './notify';
+import { getScanState, startScan } from './scanRunner';
 
 const logger = getLogger('API');
 
@@ -67,7 +68,12 @@ export function createApp(ctx: AppContext): express.Express {
     const results = await getStatusContainers(ctx);
     res.json({
       containers: results,
+      scan: getScanState(),
     });
+  });
+
+  authRouter.post('/scan', (req, res) => {
+    res.json(startScan(ctx, 'manual'));
   });
 
   authRouter.post('/notifications/test', async (req, res) => {
