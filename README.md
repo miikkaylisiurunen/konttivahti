@@ -1,6 +1,6 @@
 # Konttivahti
 
-Konttivahti is a self-hosted Docker image monitoring service. It automatically discovers running containers from your Docker host, checks whether newer versions are available, and presents the results in a clear web UI. You can then configure notifications for events so you get alerted when updates are available.
+Konttivahti is a self-hosted Docker image monitoring service. It automatically discovers running containers from your Docker host, checks whether newer versions are available, presents the results in a dashboard, and can notify you when updates are available.
 
 ![](assets/ui.png)
 
