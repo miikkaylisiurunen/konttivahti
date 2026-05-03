@@ -1,5 +1,5 @@
-import { formatDistanceToNow } from 'date-fns';
-import type { ReactNode } from 'react';
+import { formatDistance } from 'date-fns';
+import { useEffect, useState, type ReactNode } from 'react';
 import { StatusPill } from './StatusPill';
 import type { Container } from '../types';
 import {
@@ -50,14 +50,18 @@ interface ColumnCellProps {
 
 const cellClassName = 'max-w-0 truncate px-4 py-4 text-sm text-foreground';
 
-function formatContainerDate(dateValue: number | null, format: DateFormat): string {
+function formatContainerDate(
+  dateValue: number | null,
+  format: DateFormat,
+  now = Date.now(),
+): string {
   if (!dateValue) return '-';
 
   const parsed = new Date(dateValue);
   if (Number.isNaN(parsed.getTime())) return '-';
 
   if (format === 'relative') {
-    return formatDistanceToNow(parsed, { addSuffix: true });
+    return formatDistance(parsed, now, { addSuffix: true });
   }
 
   if (format === 'iso') {
@@ -78,9 +82,22 @@ function BaseCell({ isVisible, title, className, children }: BaseCellProps) {
 }
 
 function DateCell({ isVisible, value, format }: DateCellProps) {
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    if (!isVisible || format !== 'relative') return;
+
+    setNow(Date.now());
+    const interval = setInterval(() => {
+      setNow(Date.now());
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [format, isVisible]);
+
   return (
     <BaseCell isVisible={isVisible} title={formatContainerDate(value, 'iso')}>
-      {formatContainerDate(value, format)}
+      {formatContainerDate(value, format, now)}
     </BaseCell>
   );
 }
