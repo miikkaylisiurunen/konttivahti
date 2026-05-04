@@ -6,6 +6,7 @@ import {
   COLUMNS,
   getRegistryLabel,
   getTagLabel,
+  getTrackedTagLabel,
   type ContainerColumn,
   type ColumnKey,
   type DateFormat,
@@ -166,7 +167,9 @@ function ColumnCell({ column, container, isVisible, dateFormat }: ColumnCellProp
       ? getRegistryLabel(container)
       : column.key === 'tag'
         ? getTagLabel(container)
-        : String(container[column.key] ?? '');
+        : column.key === 'trackedTag'
+          ? getTrackedTagLabel(container)
+          : String(container[column.key] ?? '');
 
   return (
     <BaseCell key={column.key} isVisible={isVisible} title={value}>

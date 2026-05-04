@@ -23,13 +23,13 @@ const STATUS_CONFIGS: Record<StatusVariant, StatusConfig> = {
     pillClass:
       'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-400',
     dotClass: 'bg-emerald-500 dark:bg-emerald-400',
-    description: 'You are using the latest version of this image',
+    description: 'Image is up to date',
   },
   outdated: {
     pillClass:
       'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-400',
     dotClass: 'bg-amber-500 dark:bg-amber-400',
-    description: 'This image has a newer version available',
+    description: 'Update available',
   },
   local: {
     pillClass:

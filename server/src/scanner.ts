@@ -8,11 +8,15 @@ const logger = getLogger('Scanner');
 
 const TRUTHY_LABEL_VALUES = new Set(['1', 'true', 'yes', 'on']);
 
-interface ImageIdentity {
+interface ParsedImage {
   registry: string;
   image: string;
   tag: string;
   requestedDigest: string | null;
+}
+
+interface ImageIdentity extends ParsedImage {
+  trackedTag: string;
 }
 
 export function getRegistryBaseUrl(registry: string): string {
@@ -25,8 +29,17 @@ export function getRegistryBaseUrl(registry: string): string {
 }
 
 export function getImageIdentityKey(identity: ImageIdentity): string {
-  const base = `${identity.registry}/${identity.image}:${identity.tag}`;
+  const base = `${identity.registry}/${identity.image}:${identity.tag}|tracked=${identity.trackedTag}`;
   return identity.requestedDigest ? `${base}@${identity.requestedDigest}` : base;
+}
+
+export function getTrackedTag(trackTagLabel: string, labels?: Record<string, string>): string {
+  if (!trackTagLabel || !labels || !(trackTagLabel in labels)) return 'latest';
+
+  const rawValue = labels[trackTagLabel];
+  const trackedTag = rawValue?.trim();
+
+  return trackedTag || 'latest';
 }
 
 export function shouldIgnoreContainer(
@@ -42,7 +55,7 @@ export function shouldIgnoreContainer(
   return TRUTHY_LABEL_VALUES.has(rawValue.trim().toLowerCase());
 }
 
-export function parseImage(imageName: string): ImageIdentity | null {
+export function parseImage(imageName: string): ParsedImage | null {
   const trimmed = imageName.trim();
   if (!trimmed) return null;
 
@@ -76,6 +89,20 @@ export function parseImage(imageName: string): ImageIdentity | null {
   return { registry, image, tag, requestedDigest };
 }
 
+export function getContainerImageIdentity(
+  imageName: string,
+  labels: Record<string, string> | undefined,
+  trackTagLabel: string,
+): ImageIdentity | null {
+  const parsed = parseImage(imageName);
+  if (!parsed) return null;
+
+  return {
+    ...parsed,
+    trackedTag: getTrackedTag(trackTagLabel, labels),
+  };
+}
+
 function parseDateToMs(value?: string): number | null {
   if (!value) return null;
   const parsed = new Date(value);
@@ -94,7 +121,11 @@ async function checkContainer(
   const inspect = await container.inspect();
 
   const imageName = inspect.Config.Image;
-  const parsed = parseImage(imageName);
+  const parsed = getContainerImageIdentity(
+    imageName,
+    containerInfo.Labels,
+    ctx.env.TRACK_TAG_LABEL,
+  );
 
   if (!parsed) {
     logger.warn(
@@ -104,13 +135,20 @@ async function checkContainer(
     return null;
   }
 
-  const key = getImageIdentityKey(parsed);
-  const latestDigestKey = `${parsed.registry}/${parsed.image}`;
+  const latestDigestKey = `${parsed.registry}/${parsed.image}:${parsed.trackedTag}`;
   const name = inspect.Name.replace(/^\//, '');
+  const imageLog = {
+    container: name,
+    registry: parsed.registry,
+    image: parsed.image,
+    tag: parsed.tag,
+    trackedTag: parsed.trackedTag,
+  };
   const existing = ctx.db.getContainer(
     parsed.registry,
     parsed.image,
     parsed.tag,
+    parsed.trackedTag,
     parsed.requestedDigest,
   );
 
@@ -133,13 +171,14 @@ async function checkContainer(
   if (!localDigest) {
     const now = Date.now();
     logger.info(
-      { image: key, durationMs: Date.now() - checkStartedAt },
+      { ...imageLog, durationMs: Date.now() - checkStartedAt },
       'Image has no repo digest and might be built locally or pulled without digest',
     );
     ctx.db.upsertContainer({
       name,
       image: parsed.image,
       tag: parsed.tag,
+      trackedTag: parsed.trackedTag,
       registry: parsed.registry,
       requestedDigest: parsed.requestedDigest,
       localDigest: null,
@@ -160,16 +199,20 @@ async function checkContainer(
     if (!latestDigest) {
       if (blockedRegistries.has(parsed.registry)) {
         logger.info(
-          { image: key, registry: parsed.registry },
+          imageLog,
           'Skipping image check because registry is rate limited for this scan',
         );
         return parsed;
       }
 
       if (parsed.registry === 'docker.io') {
-        latestDigest = await getDockerHubDigest(parsed.image);
+        latestDigest = await getDockerHubDigest(parsed.image, parsed.trackedTag);
       } else {
-        latestDigest = await getRegistryDigest(getRegistryBaseUrl(parsed.registry), parsed.image);
+        latestDigest = await getRegistryDigest(
+          getRegistryBaseUrl(parsed.registry),
+          parsed.image,
+          parsed.trackedTag,
+        );
       }
       latestDigestCache.set(latestDigestKey, latestDigest);
     }
@@ -184,7 +227,7 @@ async function checkContainer(
         await notifyEvent(
           ctx,
           'update-available',
-          `Update available for ${parsed.registry}/${parsed.image} (${name}).`,
+          `Update available for ${parsed.registry}/${parsed.image}:${parsed.trackedTag} (${name}).`,
         );
       }
     }
@@ -193,6 +236,7 @@ async function checkContainer(
       name,
       image: parsed.image,
       tag: parsed.tag,
+      trackedTag: parsed.trackedTag,
       registry: parsed.registry,
       requestedDigest: parsed.requestedDigest,
       localDigest,
@@ -207,7 +251,7 @@ async function checkContainer(
 
     logger.info(
       {
-        image: key,
+        ...imageLog,
         status,
         localDigest,
         latestDigest,
@@ -222,26 +266,35 @@ async function checkContainer(
       if (!blockedRegistries.has(parsed.registry)) {
         blockedRegistries.add(parsed.registry);
         const message = `Registry rate limit reached for ${parsed.registry}. Skipping remaining checks for this registry in current scan.`;
-        logger.warn({ registry: parsed.registry, image: key }, message);
+        logger.warn(imageLog, message);
         await notifyEvent(ctx, 'scan-error', message);
       }
       return parsed;
     }
 
     logger.error(
-      { image: key, error: errorMsg, durationMs: Date.now() - checkStartedAt },
+      {
+        ...imageLog,
+        error: errorMsg,
+        durationMs: Date.now() - checkStartedAt,
+      },
       'Image check failed',
     );
     const now = Date.now();
 
     if (!existing || existing.status !== 'error' || existing.error !== errorMsg) {
-      await notifyEvent(ctx, 'scan-error', `Image scan failed for ${name} (${key}): ${errorMsg}`);
+      await notifyEvent(
+        ctx,
+        'scan-error',
+        `Image scan failed for ${name} (${parsed.registry}/${parsed.image}:${parsed.tag}): ${errorMsg}`,
+      );
     }
 
     ctx.db.upsertContainer({
       name,
       image: parsed.image,
       tag: parsed.tag,
+      trackedTag: parsed.trackedTag,
       registry: parsed.registry,
       requestedDigest: parsed.requestedDigest,
       localDigest,
@@ -273,8 +326,8 @@ export async function scanContainers(ctx: AppContext): Promise<void> {
     }
 
     const sortedContainers = [...containers].sort((a, b) => {
-      const parsedA = parseImage(a.Image);
-      const parsedB = parseImage(b.Image);
+      const parsedA = getContainerImageIdentity(a.Image, a.Labels, ctx.env.TRACK_TAG_LABEL);
+      const parsedB = getContainerImageIdentity(b.Image, b.Labels, ctx.env.TRACK_TAG_LABEL);
       const keyA = parsedA ? getImageIdentityKey(parsedA) : '';
       const keyB = parsedB ? getImageIdentityKey(parsedB) : '';
       const lastA = lastSuccessByKey.get(keyA) ?? 0;

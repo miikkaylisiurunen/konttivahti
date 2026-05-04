@@ -116,6 +116,7 @@ export class DB {
         name,
         image,
         tag,
+        trackedTag,
         requestedDigest,
         registry,
         localDigest,
@@ -127,7 +128,7 @@ export class DB {
         createdAt,
         error
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT DO UPDATE SET
         name = excluded.name,
         localDigest = excluded.localDigest,
@@ -144,6 +145,7 @@ export class DB {
       data.name,
       data.image,
       data.tag,
+      data.trackedTag,
       data.requestedDigest,
       data.registry,
       data.localDigest,
@@ -166,17 +168,24 @@ export class DB {
     registry: string,
     image: string,
     tag: string,
+    trackedTag: string,
     requestedDigest: string | null,
   ): DbContainer | null {
     const stmt = this.db.prepare(
       `
       SELECT *
       FROM image_cache
-      WHERE registry = ? AND image = ? AND tag = ? AND IFNULL(requestedDigest, '') = IFNULL(?, '')
+      WHERE registry = ?
+        AND image = ?
+        AND tag = ?
+        AND trackedTag = ?
+        AND IFNULL(requestedDigest, '') = IFNULL(?, '')
       LIMIT 1
       `,
     );
-    const row = stmt.get(registry, image, tag, requestedDigest) as DbContainer | undefined;
+    const row = stmt.get(registry, image, tag, trackedTag, requestedDigest) as
+      | DbContainer
+      | undefined;
     return row ?? null;
   }
 

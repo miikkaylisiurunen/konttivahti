@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import {
+  getContainerImageIdentity,
   getImageIdentityKey,
   getRegistryBaseUrl,
+  getTrackedTag,
   parseImage,
   shouldIgnoreContainer,
 } from './scanner';
@@ -238,6 +240,48 @@ describe('shouldIgnoreContainer', () => {
   });
 });
 
+describe('getTrackedTag', () => {
+  const label = 'konttivahti.track-tag';
+
+  it('defaults to latest when the label is missing', () => {
+    expect(getTrackedTag(label, { 'other.label': '17' })).toBe('latest');
+    expect(getTrackedTag(label, undefined)).toBe('latest');
+  });
+
+  it('uses a trimmed tag from the configured label', () => {
+    expect(getTrackedTag(label, { [label]: ' 17 ' })).toBe('17');
+    expect(getTrackedTag(label, { [label]: 'v1.2.3-alpine' })).toBe('v1.2.3-alpine');
+  });
+
+  it('defaults to latest for empty tag labels', () => {
+    expect(getTrackedTag(label, { [label]: '' })).toBe('latest');
+  });
+});
+
+describe('getContainerImageIdentity', () => {
+  const label = 'konttivahti.track-tag';
+
+  it('adds the default tracked tag to a parsed image', () => {
+    expect(getContainerImageIdentity('postgres:16', undefined, label)).toEqual({
+      registry: 'docker.io',
+      image: 'postgres',
+      tag: '16',
+      trackedTag: 'latest',
+      requestedDigest: null,
+    });
+  });
+
+  it('adds the configured tracked tag from labels', () => {
+    expect(getContainerImageIdentity('postgres:16', { [label]: '17' }, label)).toEqual({
+      registry: 'docker.io',
+      image: 'postgres',
+      tag: '16',
+      trackedTag: '17',
+      requestedDigest: null,
+    });
+  });
+});
+
 describe('getRegistryBaseUrl', () => {
   it('uses http for localhost registries', () => {
     expect(getRegistryBaseUrl('localhost')).toBe('http://localhost');
@@ -271,9 +315,10 @@ describe('getImageIdentityKey', () => {
         registry: 'docker.io',
         image: 'nginx',
         tag: 'latest',
+        trackedTag: 'latest',
         requestedDigest: 'sha256:aaa',
       }),
-    ).toBe('docker.io/nginx:latest@sha256:aaa');
+    ).toBe('docker.io/nginx:latest|tracked=latest@sha256:aaa');
   });
 
   it('separates digest-pinned image from plain tag image', () => {
@@ -281,12 +326,14 @@ describe('getImageIdentityKey', () => {
       registry: 'docker.io',
       image: 'nginx',
       tag: 'latest',
+      trackedTag: 'latest',
       requestedDigest: null,
     });
     const pinnedKey = getImageIdentityKey({
       registry: 'docker.io',
       image: 'nginx',
       tag: 'latest',
+      trackedTag: 'latest',
       requestedDigest: 'sha256:bbb',
     });
 
@@ -298,33 +345,38 @@ describe('getImageIdentityKey', () => {
       registry: 'docker.io',
       image: 'nginx',
       tag: 'latest',
+      trackedTag: 'latest',
       requestedDigest: null,
     });
     const emptyDigestKey = getImageIdentityKey({
       registry: 'docker.io',
       image: 'nginx',
       tag: 'latest',
+      trackedTag: 'latest',
       requestedDigest: '',
     });
 
     expect(nullDigestKey).toBe(emptyDigestKey);
-    expect(nullDigestKey).toBe('docker.io/nginx:latest');
+    expect(nullDigestKey).toBe('docker.io/nginx:latest|tracked=latest');
   });
 
-  it('changes key when registry, image, or tag changes', () => {
+  it('changes key when registry, image, tag, or tracked tag changes', () => {
     const baseInput = {
       registry: 'docker.io',
       image: 'nginx',
       tag: 'latest',
+      trackedTag: 'latest',
       requestedDigest: null,
     } as const;
     const base = getImageIdentityKey(baseInput);
     const differentRegistry = getImageIdentityKey({ ...baseInput, registry: 'ghcr.io' });
     const differentImage = getImageIdentityKey({ ...baseInput, image: 'library/nginx' });
     const differentTag = getImageIdentityKey({ ...baseInput, tag: '1.25' });
+    const differentTrackedTag = getImageIdentityKey({ ...baseInput, trackedTag: '1.25' });
 
     expect(base).not.toBe(differentRegistry);
     expect(base).not.toBe(differentImage);
     expect(base).not.toBe(differentTag);
+    expect(base).not.toBe(differentTrackedTag);
   });
 });

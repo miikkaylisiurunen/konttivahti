@@ -15,6 +15,7 @@ const Env = z.object({
   DOCKER_HOST: z.string().min(1).optional(),
   DOCKER_SOCKET: z.string().default('/var/run/docker.sock'),
   IGNORE_CONTAINER_LABEL: z.string().default('konttivahti.ignore'),
+  TRACK_TAG_LABEL: z.string().default('konttivahti.track-tag'),
 
   SESSION_TIMEOUT_MS: z.coerce
     .number()

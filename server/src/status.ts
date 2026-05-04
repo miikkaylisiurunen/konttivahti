@@ -1,5 +1,5 @@
 import type { ApiContainer, AppContext, DbContainer } from './types';
-import { getImageIdentityKey, parseImage, shouldIgnoreContainer } from './scanner';
+import { getContainerImageIdentity, getImageIdentityKey, shouldIgnoreContainer } from './scanner';
 import { getLogger } from './logger';
 
 const logger = getLogger('Status');
@@ -22,7 +22,11 @@ export async function getStatusContainers(ctx: AppContext): Promise<ApiContainer
       continue;
     }
 
-    const parsed = parseImage(containerInfo.Image);
+    const parsed = getContainerImageIdentity(
+      containerInfo.Image,
+      containerInfo.Labels,
+      ctx.env.TRACK_TAG_LABEL,
+    );
     if (!parsed) {
       logger.warn({ image: containerInfo.Image }, 'Skipping unparsable image');
       continue;
@@ -35,6 +39,7 @@ export async function getStatusContainers(ctx: AppContext): Promise<ApiContainer
       name,
       image: parsed.image,
       tag: parsed.tag,
+      trackedTag: parsed.trackedTag,
       requestedDigest: parsed.requestedDigest,
       registry: parsed.registry,
       localDigest: cached?.localDigest ?? null,

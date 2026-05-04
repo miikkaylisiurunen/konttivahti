@@ -14,6 +14,7 @@ export interface DbContainer {
   name: string;
   image: string;
   tag: string;
+  trackedTag: string;
   requestedDigest: string | null;
   registry: string;
   localDigest: string | null;

@@ -187,6 +187,7 @@ describe('DB containers', () => {
       name: 'api',
       image: 'example/service',
       tag: 'latest',
+      trackedTag: 'latest',
       requestedDigest: null,
       registry: 'docker.io',
       localDigest: 'sha256:local-a',
@@ -201,7 +202,7 @@ describe('DB containers', () => {
 
     db.upsertContainer(container);
 
-    const stored = db.getContainer('docker.io', 'example/service', 'latest', null);
+    const stored = db.getContainer('docker.io', 'example/service', 'latest', 'latest', null);
     expect(stored).not.toBeNull();
     expect(stored?.requestedDigest).toBeNull();
     expect(stored?.image).toBe('example/service');
@@ -212,6 +213,7 @@ describe('DB containers', () => {
       name: 'api',
       image: 'example/service',
       tag: 'latest',
+      trackedTag: 'latest',
       requestedDigest: null,
       registry: 'docker.io',
       localDigest: 'sha256:local-a',
@@ -228,6 +230,7 @@ describe('DB containers', () => {
       name: 'api',
       image: 'example/service',
       tag: 'latest',
+      trackedTag: 'latest',
       requestedDigest: 'sha256:requested-b',
       registry: 'docker.io',
       localDigest: 'sha256:local-b',
@@ -240,12 +243,57 @@ describe('DB containers', () => {
       error: null,
     });
 
-    expect(db.getContainer('docker.io', 'example/service', 'latest', null)?.localDigest).toBe(
-      'sha256:local-a',
+    expect(
+      db.getContainer('docker.io', 'example/service', 'latest', 'latest', null)?.localDigest,
+    ).toBe('sha256:local-a');
+    expect(
+      db.getContainer('docker.io', 'example/service', 'latest', 'latest', 'sha256:requested-b')
+        ?.localDigest,
+    ).toBe('sha256:local-b');
+    expect(db.getAllContainers()).toHaveLength(2);
+  });
+
+  it('keeps separate rows for tracked tag variants', () => {
+    db.upsertContainer({
+      name: 'api',
+      image: 'example/service',
+      tag: '16',
+      trackedTag: '17',
+      requestedDigest: null,
+      registry: 'docker.io',
+      localDigest: 'sha256:local-a',
+      latestDigest: 'sha256:remote-a',
+      status: 'outdated',
+      lastCheckedAt: 100,
+      lastSuccessAt: 90,
+      lastUpdateDetectedAt: 95,
+      createdAt: 80,
+      error: null,
+    });
+
+    db.upsertContainer({
+      name: 'api',
+      image: 'example/service',
+      tag: '16',
+      trackedTag: 'latest',
+      requestedDigest: null,
+      registry: 'docker.io',
+      localDigest: 'sha256:local-b',
+      latestDigest: 'sha256:remote-b',
+      status: 'up_to_date',
+      lastCheckedAt: 200,
+      lastSuccessAt: 190,
+      lastUpdateDetectedAt: null,
+      createdAt: 180,
+      error: null,
+    });
+
+    expect(db.getContainer('docker.io', 'example/service', '16', '17', null)?.latestDigest).toBe(
+      'sha256:remote-a',
     );
     expect(
-      db.getContainer('docker.io', 'example/service', 'latest', 'sha256:requested-b')?.localDigest,
-    ).toBe('sha256:local-b');
+      db.getContainer('docker.io', 'example/service', '16', 'latest', null)?.latestDigest,
+    ).toBe('sha256:remote-b');
     expect(db.getAllContainers()).toHaveLength(2);
   });
 
@@ -254,6 +302,7 @@ describe('DB containers', () => {
       name: 'api',
       image: 'example/service',
       tag: 'latest',
+      trackedTag: 'latest',
       requestedDigest: null,
       registry: 'docker.io',
       localDigest: 'sha256:local-a',
@@ -270,6 +319,7 @@ describe('DB containers', () => {
       name: 'api-renamed',
       image: 'example/service',
       tag: 'latest',
+      trackedTag: 'latest',
       requestedDigest: null,
       registry: 'docker.io',
       localDigest: 'sha256:local-b',
@@ -282,7 +332,7 @@ describe('DB containers', () => {
       error: 'second error',
     });
 
-    const stored = db.getContainer('docker.io', 'example/service', 'latest', null);
+    const stored = db.getContainer('docker.io', 'example/service', 'latest', 'latest', null);
     expect(stored).not.toBeNull();
     expect(stored?.name).toBe('api-renamed');
     expect(stored?.localDigest).toBe('sha256:local-b');
@@ -350,7 +400,7 @@ describe('DB migrations', () => {
       count: number;
     };
 
-    expect(migrations.count).toBe(3);
+    expect(migrations.count).toBe(4);
     expect(settingsRows.count).toBe(1);
     expect(db.getSettings()).toEqual({
       notifications_enabled: true,

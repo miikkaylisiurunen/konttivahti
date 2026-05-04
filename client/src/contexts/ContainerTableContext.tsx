@@ -7,6 +7,7 @@ import {
   STATUS_FILTERS,
   getRegistryLabel,
   getTagLabel,
+  getTrackedTagLabel,
   type DateFormat,
   type ColumnKey,
   type StatusVariant,
@@ -64,6 +65,10 @@ function getSortableValue(container: Container, key: ColumnKey): number | string
     return getTagLabel(container).toLowerCase();
   }
 
+  if (key === 'trackedTag') {
+    return getTrackedTagLabel(container).toLowerCase();
+  }
+
   const value = container[key];
   if (typeof value === 'number') return value;
 
@@ -96,11 +101,13 @@ export function ContainerTableProvider({ containers, children }: ContainerTableP
       const requestedDigest = container.requestedDigest ?? '';
       const tag = getTagLabel(container);
       const registry = getRegistryLabel(container);
+      const trackedTag = getTrackedTagLabel(container);
 
       return (
         container.name.toLowerCase().includes(query) ||
         container.image.toLowerCase().includes(query) ||
         tag.toLowerCase().includes(query) ||
+        trackedTag.toLowerCase().includes(query) ||
         registry.toLowerCase().includes(query) ||
         requestedDigest.toLowerCase().includes(query) ||
         localDigest.toLowerCase().includes(query) ||

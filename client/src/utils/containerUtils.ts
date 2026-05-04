@@ -17,6 +17,7 @@ export type ColumnKey = keyof Pick<
   | 'name'
   | 'image'
   | 'tag'
+  | 'trackedTag'
   | 'registry'
   | 'status'
   | 'createdAt'
@@ -50,6 +51,7 @@ export const COLUMNS: ContainerColumn[] = [
   { key: 'name', label: 'Name', widthClassName: 'w-48', kind: 'text', Icon: Type },
   { key: 'image', label: 'Image', widthClassName: 'w-48', kind: 'text', Icon: Package },
   { key: 'tag', label: 'Tag', widthClassName: 'w-32', kind: 'text', Icon: Tag },
+  { key: 'trackedTag', label: 'Tracked Tag', widthClassName: 'w-36', kind: 'text', Icon: Tag },
   { key: 'registry', label: 'Registry', widthClassName: 'w-36', kind: 'text', Icon: Globe },
   { key: 'status', label: 'Status', widthClassName: 'w-42', kind: 'status', Icon: Activity },
   {
@@ -82,7 +84,7 @@ export const COLUMNS: ContainerColumn[] = [
   },
   {
     key: 'latestDigest',
-    label: 'Latest Digest',
+    label: 'Remote Digest',
     widthClassName: 'w-32',
     kind: 'digest',
     Icon: Fingerprint,
@@ -114,4 +116,8 @@ export function getTagLabel(container: Container): string {
   }
 
   return container.tag;
+}
+
+export function getTrackedTagLabel(container: Container): string {
+  return container.status === 'local' ? '-' : container.trackedTag;
 }

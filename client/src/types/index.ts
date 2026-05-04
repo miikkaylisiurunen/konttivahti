@@ -23,6 +23,7 @@ export const Container = z.object({
   registry: z.string(),
   status: ContainerStatus,
   tag: z.string(),
+  trackedTag: z.string(),
 });
 export type Container = z.infer<typeof Container>;
 

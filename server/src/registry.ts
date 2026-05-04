@@ -36,15 +36,19 @@ export function parseWWWAuthenticate(header: string): WWWAuthenticate | null {
   };
 }
 
-async function getRegistryToken(registryUrl: string, image: string): Promise<string | null> {
-  const cacheKey = `${registryUrl}:${image}:latest`;
+async function getRegistryToken(
+  registryUrl: string,
+  image: string,
+  tag: string,
+): Promise<string | null> {
+  const cacheKey = `${registryUrl}:${image}:${tag}`;
   const cached = tokenCache.get(cacheKey);
 
   if (cached && cached.expiresAt > Date.now()) {
     return cached.token;
   }
 
-  const probeRes = await fetch(`${registryUrl}/v2/${image}/manifests/latest`, {
+  const probeRes = await fetch(`${registryUrl}/v2/${image}/manifests/${tag}`, {
     headers: {
       Accept:
         'application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.oci.image.index.v1+json',
@@ -102,8 +106,12 @@ async function getRegistryToken(registryUrl: string, image: string): Promise<str
   return token;
 }
 
-export async function getRegistryDigest(registryUrl: string, image: string): Promise<string> {
-  const token = await getRegistryToken(registryUrl, image);
+export async function getRegistryDigest(
+  registryUrl: string,
+  image: string,
+  tag: string,
+): Promise<string> {
+  const token = await getRegistryToken(registryUrl, image, tag);
 
   const headers: Record<string, string> = {
     Accept:
@@ -114,7 +122,7 @@ export async function getRegistryDigest(registryUrl: string, image: string): Pro
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const manifestRes = await fetch(`${registryUrl}/v2/${image}/manifests/latest`, {
+  const manifestRes = await fetch(`${registryUrl}/v2/${image}/manifests/${tag}`, {
     headers,
   });
 
@@ -130,7 +138,7 @@ export async function getRegistryDigest(registryUrl: string, image: string): Pro
   return digest;
 }
 
-export async function getDockerHubDigest(image: string): Promise<string> {
+export async function getDockerHubDigest(image: string, tag: string): Promise<string> {
   const fullImage = image.includes('/') ? image : `library/${image}`;
-  return getRegistryDigest('https://registry-1.docker.io', fullImage);
+  return getRegistryDigest('https://registry-1.docker.io', fullImage, tag);
 }

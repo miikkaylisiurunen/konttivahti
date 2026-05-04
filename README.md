@@ -8,6 +8,7 @@ Konttivahti is a self-hosted Docker image monitoring service. It automatically d
 
 - Auto-detects running containers from the Docker socket.
 - Notification integration via [Shoutrrr](https://github.com/containrrr/shoutrrr).
+- Supports checking updates against a specific tag.
 - Supports ignoring containers via a configurable container label.
 - Runs as a single Dockerized service.
 
@@ -67,7 +68,9 @@ Open `http://localhost:3000` and create the admin account.
 
 ## Scanning for updates
 
-Konttivahti will automatically scan for updates on a schedule defined by the `SCAN_SCHEDULE` environment variable (default: every 6 hours). This schedule should not be too frequent to avoid hitting registry rate limits. The app will auto-discover new running containers immediately, but updates are only checked during scheduled scans.
+Konttivahti automatically discovers running containers from the Docker host. By default, each container is checked against the `latest` tag for its image. Containers can also define a specific tag to track when `latest` is not the tag you want to compare against. See [Tracking against a specific tag](#tracking-against-a-specific-tag) for configuration details.
+
+Update checks run on the schedule defined by the `SCAN_SCHEDULE` environment variable (default: every 6 hours). New running containers appear in the dashboard immediately. Their update status is automatically refreshed during scheduled scans. You can also start a scan manually from the dashboard at any time.
 
 ## Configuration
 
@@ -77,13 +80,6 @@ Environment variable: `SCAN_SCHEDULE`
 Default: `0 */6 * * *`
 
 Controls how often Konttivahti scans tracked containers for available image updates. The value must be a standard cron expression. The default runs every six hours, which is a sensible balance for most environments. Running scans too frequently can increase load on image registries and may hit rate limits, especially when monitoring many containers.
-
-### Docker host
-
-Environment variable: `DOCKER_HOST`  
-Default: unset
-
-Sets the Docker API endpoint. Leave it unset to use the default mounted Docker socket at `/var/run/docker.sock`, or set it to a TCP endpoint such as `tcp://docker-socket-proxy:2375` when using a Docker socket proxy.
 
 ### Ignoring containers
 
@@ -101,6 +97,30 @@ services:
     labels:
       konttivahti.ignore: 'true'
 ```
+
+### Tracking against a specific tag
+
+Environment variable: `TRACK_TAG_LABEL`  
+Default: `konttivahti.track-tag`
+
+Defines the label key Konttivahti checks to determine which registry tag should be used as the update target for a container.
+
+Konttivahti checks containers against `latest` by default. This works well for images where `latest` is the tag you normally update to. For images where you need to stay on a specific version, `latest` may not be useful. For example, if a service must stay on PostgreSQL 16, `latest` might point to PostgreSQL 18, which is not an update you can apply. In that case, you can track the `16` tag instead.
+
+```yaml
+services:
+  postgres:
+    image: postgres:16.4
+    labels:
+      konttivahti.track-tag: '16'
+```
+
+### Docker host
+
+Environment variable: `DOCKER_HOST`  
+Default: unset
+
+Sets the Docker API endpoint. Leave it unset to use the default mounted Docker socket at `/var/run/docker.sock`, or set it to a TCP endpoint such as `tcp://docker-socket-proxy:2375` when using a Docker socket proxy.
 
 ### Session lifetime
 

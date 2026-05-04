@@ -1,5 +1,9 @@
-import { describe, it, expect } from 'vitest';
-import { parseWWWAuthenticate } from './registry';
+import { afterEach, describe, it, expect, vi } from 'vitest';
+import { getDockerHubDigest, getRegistryDigest, parseWWWAuthenticate } from './registry';
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe('parseWWWAuthenticate', () => {
   it('parses full www-authenticate header', () => {
@@ -92,5 +96,58 @@ describe('parseWWWAuthenticate', () => {
 
   it('returns null for malformed header', () => {
     expect(parseWWWAuthenticate('Bearer invalid')).toBeNull();
+  });
+});
+
+describe('getRegistryDigest', () => {
+  it('requests the manifest for the supplied tag', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(null, { status: 200 }))
+      .mockResolvedValueOnce(
+        new Response(null, {
+          status: 200,
+          headers: { 'Docker-Content-Digest': 'sha256:remote-17' },
+        }),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(getRegistryDigest('https://registry.example.com', 'team/app', '17')).resolves.toBe(
+      'sha256:remote-17',
+    );
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      'https://registry.example.com/v2/team/app/manifests/17',
+      expect.any(Object),
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      'https://registry.example.com/v2/team/app/manifests/17',
+      expect.any(Object),
+    );
+  });
+});
+
+describe('getDockerHubDigest', () => {
+  it('uses Docker Hub library namespace and supplied tag', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(null, { status: 200 }))
+      .mockResolvedValueOnce(
+        new Response(null, {
+          status: 200,
+          headers: { 'Docker-Content-Digest': 'sha256:postgres-17' },
+        }),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(getDockerHubDigest('postgres', '17')).resolves.toBe('sha256:postgres-17');
+
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      'https://registry-1.docker.io/v2/library/postgres/manifests/17',
+      expect.any(Object),
+    );
   });
 });
