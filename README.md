@@ -1,8 +1,23 @@
-# Konttivahti
+# Konttivahti <!-- omit from toc -->
 
 Konttivahti is a self-hosted Docker image monitoring service. It automatically discovers running containers from your Docker host, checks whether newer versions are available, presents the results in a dashboard, and can notify you when updates are available.
 
 ![](assets/ui.png)
+
+## Table of Contents <!-- omit from toc -->
+
+- [Features](#features)
+- [Usage](#usage)
+  - [1. Create `docker-compose.yml`](#1-create-docker-composeyml)
+  - [2. Start the service](#2-start-the-service)
+  - [3. Complete first-time setup](#3-complete-first-time-setup)
+- [Scanning for updates](#scanning-for-updates)
+- [Configuration](#configuration)
+  - [Scan schedule](#scan-schedule)
+  - [Ignoring containers](#ignoring-containers)
+  - [Tracking against a specific tag](#tracking-against-a-specific-tag)
+  - [Docker host](#docker-host)
+  - [Session lifetime](#session-lifetime)
 
 ## Features
 
